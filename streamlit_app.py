@@ -1,5 +1,6 @@
 """
 Streamlit Demonstration App for SIH26162 Thermal Intelligence & AI Model.
+Uses Folium for 100% reliable, zero-dependency Leaflet map rendering.
 """
 
 import os
@@ -7,7 +8,8 @@ import json
 import numpy as np
 import pandas as pd
 import streamlit as st
-import pydeck as pdk
+import folium
+from streamlit_folium import st_folium
 
 from src.features.feature_config import PROJECT_ROOT, MERGED_DATASET_PATH, ALL_MODEL_FEATURES
 from src.models.predictor import get_predictor, predict
@@ -107,42 +109,31 @@ st.divider()
 # --- MODE 1: GEOSPATIAL MAP & INSPECTOR ---
 if app_mode == "Geospatial Map & Inspector":
     st.subheader("📍 Geospatial Thermal Anomaly Map (India)")
-    st.write(f"Displaying **{len(filtered_df):,}** spatial grid cell candidates across India. Red = Persistent Industrial Source, Amber = Ephemeral Crop Fire.")
+    st.write(f"Displaying **{len(filtered_df):,}** spatial grid cell candidates across India. Red = Persistent Industrial Source, Orange = Ephemeral Crop Fire.")
     
     # Prepare Map Data
-    map_df = filtered_df.head(1500).copy()
-    map_df["latitude"] = map_df["lat_grid"]
-    map_df["longitude"] = map_df["lon_grid"]
+    map_df = filtered_df.head(500).copy()
     
-    map_df["color_r"] = np.where(map_df["target_persistent_source"] == 1, 239, 245)
-    map_df["color_g"] = np.where(map_df["target_persistent_source"] == 1, 68, 158)
-    map_df["color_b"] = np.where(map_df["target_persistent_source"] == 1, 68, 11)
-    map_df["radius"] = np.where(map_df["target_persistent_source"] == 1, 10000, 5000)
+    # Create Folium Map centered over India
+    m = folium.Map(location=[22.50, 79.50], zoom_start=5, tiles="CartoDB dark_matter")
 
-    # PyDeck Map Layer with Open Carto GL dark basemap (No Mapbox Token Needed)
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        map_df,
-        get_position=["longitude", "latitude"],
-        get_color=["color_r", "color_g", "color_b", 220],
-        get_radius="radius",
-        pickable=True,
-    )
+    for idx, row in map_df.iterrows():
+        is_p = row["target_persistent_source"] == 1
+        color = "#ef4444" if is_p else "#f59e0b"
+        radius = 6 if is_p else 4
+        popup_html = f"<b>Grid ID:</b> {row['grid_id']}<br><b>Active Days:</b> {row['active_days']}<br><b>Persistence:</b> {row['persistence_days']} days<br><b>Night Ratio:</b> {(row['night_ratio']*100):.1f}%"
+        
+        folium.CircleMarker(
+            location=[row["lat_grid"], row["lon_grid"]],
+            radius=radius,
+            color=color,
+            fill=True,
+            fill_color=color,
+            fill_opacity=0.8,
+            popup=folium.Popup(popup_html, max_width=250)
+        ).add_to(m)
 
-    view_state = pdk.ViewState(latitude=22.50, longitude=79.50, zoom=4.5, pitch=0)
-
-    r = pdk.Deck(
-        layers=[layer],
-        initial_view_state=view_state,
-        tooltip={"text": "Grid ID: {grid_id}\nActive Days: {active_days}\nPersistence: {persistence_days} days\nNight Ratio: {night_ratio}\nMean FRP: {mean_frp} MW"},
-        map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/json"
-    )
-
-    try:
-        st.pydeck_chart(r)
-    except Exception:
-        # Fallback to st.map if pydeck has rendering issues
-        st.map(map_df[["latitude", "longitude"]])
+    st_folium(m, width=1100, height=480)
 
     # Hotspot Selector & Live Inspector
     st.markdown("### 🔍 Thermal Grid Cell ML Inspector")
