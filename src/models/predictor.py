@@ -8,7 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Any, Union, Mapping
+from typing import Dict, Any, Union, Mapping, List
 
 from src.features.feature_config import PROJECT_ROOT, ALL_MODEL_FEATURES
 
@@ -36,6 +36,7 @@ class ThermalSourcePredictor:
     def _load_artifacts(self):
         """Load serialized model artifact and metadata."""
         if not self.model_path.exists():
+            self.model = None
             return
             
         try:
@@ -53,28 +54,36 @@ class ThermalSourcePredictor:
             print(f"Warning loading model artifact: {e}")
             self.model = None
 
-    def predict(self, input_features: Union[Mapping[str, Any], Dict[str, Any], pd.Series, pd.DataFrame]) -> Dict[str, Any]:
+    def predict(self, input_data: Union[Mapping[str, Any], Dict[str, Any], pd.Series, pd.DataFrame]) -> Dict[str, Any]:
         """
-        Make explainable prediction for input thermal grid cell.
-        Accepts dictionary, pandas Series, or DataFrame.
+        Make explainable prediction for input thermal grid cell or event payload.
+        Accepts dict/mapping, pandas Series, or DataFrame.
         """
+        if not isinstance(input_data, (Mapping, dict, pd.Series, pd.DataFrame)):
+            raise TypeError("input_data must be a mapping/dict, pandas Series, or DataFrame.")
+            
         if not self.is_model_loaded:
             return {
                 "classification": "MODEL_NOT_AVAILABLE",
                 "model_score": None,
-                "evidence": ["No trained model artifact is available."],
-                "model_version": self.model_version,
+                "evidence": ["Development placeholder only. No trained model is loaded."],
+                "model_version": "mock-v0",
                 "is_mock": True,
             }
             
-        if isinstance(input_features, (dict, Mapping)):
-            df = pd.DataFrame([dict(input_features)])
-        elif isinstance(input_features, pd.Series):
-            df = pd.DataFrame([input_features.to_dict()])
-        elif isinstance(input_features, pd.DataFrame):
-            df = input_features.copy()
-        else:
-            raise TypeError("input_features must be a mapping/dict, pandas Series, or DataFrame.")
+        # Unpack nested features dict if passed from prediction API router
+        if isinstance(input_data, Mapping):
+            raw_dict = dict(input_data)
+            if "features" in raw_dict and isinstance(raw_dict["features"], dict):
+                features_dict = dict(raw_dict["features"])
+                features_dict["grid_id"] = raw_dict.get("event_id", features_dict.get("grid_id", "cell_0_0"))
+            else:
+                features_dict = raw_dict
+            df = pd.DataFrame([features_dict])
+        elif isinstance(input_data, pd.Series):
+            df = pd.DataFrame([input_data.to_dict()])
+        elif isinstance(input_data, pd.DataFrame):
+            df = input_data.copy()
             
         # Auto-impute missing feature columns safely
         for col in self.feature_names:
@@ -92,7 +101,7 @@ class ThermalSourcePredictor:
         
         label = "Persistent Thermal Source / Industrial Candidate" if pred_class == 1 else "Ephemeral / Presumed Vegetation Fire"
         
-        # Extract evidence
+        # Extract evidence metrics
         row = df.iloc[0]
         grid_id = str(row.get("grid_id", f"{row.get('lat_grid', 0.0)}_{row.get('lon_grid', 0.0)}"))
         active_days = int(row.get("active_days", 1))
@@ -102,6 +111,14 @@ class ThermalSourcePredictor:
         mean_frp = float(row.get("mean_frp", 0.0))
         osm_ind_count = int(row.get("osm_industrial_count", 0))
         osm_min_dist = float(row.get("osm_min_distance_m", 2000.0))
+        
+        evidence_lines = [
+            f"Classification: {label} (Confidence: {prob*100:.1f}%)",
+            f"Thermal Persistence: Active on {active_days} distinct days over a span of {persistence_days} days.",
+            f"Diurnal Signature: Night observation ratio of {night_ratio*100:.1f}% ({int(obs_count*night_ratio)} night observations).",
+            f"Radiative Power: Mean Fire Radiative Power (FRP) of {mean_frp:.2f} MW.",
+            f"Infrastructure Context: {osm_ind_count} nearby OSM industrial features within 2km (min dist: {osm_min_dist:.1f}m)."
+        ]
         
         evidence_dict = {
             "observation_count": obs_count,
@@ -116,14 +133,6 @@ class ThermalSourcePredictor:
             "osm_min_distance_m": round(osm_min_dist, 2)
         }
         
-        explanation_lines = [
-            f"Classification: {label} (Confidence: {prob*100:.1f}%)",
-            f"• Thermal Persistence: Active on {active_days} distinct days over a span of {persistence_days} days.",
-            f"• Diurnal Signature: Night observation ratio of {night_ratio*100:.1f}% ({int(obs_count*night_ratio)} night observations).",
-            f"• Radiative Power: Mean Fire Radiative Power (FRP) of {mean_frp:.2f} MW.",
-            f"• Infrastructure Context: {osm_ind_count} nearby OSM industrial features within 2km (min dist: {osm_min_dist:.1f}m)."
-        ]
-        
         return {
             "grid_id": grid_id,
             "classification": label,
@@ -131,8 +140,9 @@ class ThermalSourcePredictor:
             "confidence_score": round(prob, 4),
             "model_score": round(prob, 4),
             "classification_label": label,
-            "evidence": evidence_dict,
-            "explanation_summary": "\n".join(explanation_lines),
+            "evidence": evidence_lines,
+            "evidence_dict": evidence_dict,
+            "explanation_summary": "\n".join(evidence_lines),
             "model_version": self.model_version,
             "is_mock": False
         }
@@ -147,6 +157,6 @@ def get_predictor() -> ThermalSourcePredictor:
     return predictor
 
 
-def predict(input_data: Mapping[str, Any]) -> dict[str, Any]:
+def predict(input_data: Union[Mapping[str, Any], Dict[str, Any]]) -> dict[str, Any]:
     """Public prediction function used by backend routers."""
     return predictor.predict(input_data)
