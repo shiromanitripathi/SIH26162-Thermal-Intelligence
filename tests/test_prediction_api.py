@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.routers import prediction as prediction_router
 
 
 client = TestClient(app)
@@ -47,3 +48,27 @@ def test_predict_invalid_features():
     )
 
     assert response.status_code == 422
+
+
+def test_predictor_failure_returns_clean_500(monkeypatch):
+    def failing_predict(_input_data):
+        raise RuntimeError("simulated predictor failure")
+
+    monkeypatch.setattr(
+        prediction_router,
+        "predict",
+        failing_predict,
+    )
+
+    response = client.post(
+        "/api/predict",
+        json={
+            "event_id": "EVT_TEST_FAILURE",
+            "features": {},
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.json() == {
+        "detail": "Prediction service failed"
+    }
