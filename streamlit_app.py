@@ -27,7 +27,6 @@ st.markdown("""
     .main { background-color: #020617; }
     .stMetric { background-color: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid #1e293b; }
     .stAlert { border-radius: 10px; }
-    .css-1r650qz { background-color: #0f172a; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -38,7 +37,6 @@ def load_data():
     if MERGED_DATASET_PATH.exists():
         df = pd.read_csv(MERGED_DATASET_PATH)
     else:
-        # Fallback sample dataset
         df = pd.DataFrame([
             {
                 "grid_id": "23.76_86.40", "lat_grid": 23.76, "lon_grid": 86.40,
@@ -113,17 +111,20 @@ if app_mode == "Geospatial Map & Inspector":
     
     # Prepare Map Data
     map_df = filtered_df.head(1500).copy()
+    map_df["latitude"] = map_df["lat_grid"]
+    map_df["longitude"] = map_df["lon_grid"]
+    
     map_df["color_r"] = np.where(map_df["target_persistent_source"] == 1, 239, 245)
     map_df["color_g"] = np.where(map_df["target_persistent_source"] == 1, 68, 158)
     map_df["color_b"] = np.where(map_df["target_persistent_source"] == 1, 68, 11)
-    map_df["radius"] = np.where(map_df["target_persistent_source"] == 1, 8000, 4000)
+    map_df["radius"] = np.where(map_df["target_persistent_source"] == 1, 10000, 5000)
 
-    # PyDeck Map Layer
+    # PyDeck Map Layer with Open Carto GL dark basemap (No Mapbox Token Needed)
     layer = pdk.Layer(
         "ScatterplotLayer",
         map_df,
-        get_position=["lon_grid", "lat_grid"],
-        get_color=["color_r", "color_g", "color_b", 200],
+        get_position=["longitude", "latitude"],
+        get_color=["color_r", "color_g", "color_b", 220],
         get_radius="radius",
         pickable=True,
     )
@@ -134,10 +135,14 @@ if app_mode == "Geospatial Map & Inspector":
         layers=[layer],
         initial_view_state=view_state,
         tooltip={"text": "Grid ID: {grid_id}\nActive Days: {active_days}\nPersistence: {persistence_days} days\nNight Ratio: {night_ratio}\nMean FRP: {mean_frp} MW"},
-        map_style="mapbox://styles/mapbox/dark-v10"
+        map_style="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/json"
     )
 
-    st.pydeck_chart(r)
+    try:
+        st.pydeck_chart(r)
+    except Exception:
+        # Fallback to st.map if pydeck has rendering issues
+        st.map(map_df[["latitude", "longitude"]])
 
     # Hotspot Selector & Live Inspector
     st.markdown("### 🔍 Thermal Grid Cell ML Inspector")
