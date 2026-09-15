@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
-from src.api.routers import prediction as prediction_router
 
 from src.api.main import app
+from src.api.routers import prediction as prediction_router
 
 
 client = TestClient(app)
@@ -48,6 +48,7 @@ def test_predict_invalid_features():
     )
 
     assert response.status_code == 422
+
 
 def test_predictor_failure_returns_clean_500(monkeypatch):
     def failing_predict(_input_data):
