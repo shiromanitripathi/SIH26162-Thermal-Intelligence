@@ -1,0 +1,52 @@
+# Python / Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Data directories (exclude raw, processed, and external dataset files except .gitkeep)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+
+# Model artifacts (exclude trained models, binaries, and weights except .gitkeep)
+models/*
+!models/.gitkeep
+*.pkl
+*.joblib
+*.h5
+*.onnx
+*.pt
+*.pth
+
+# Jupyter Notebook Checkpoints & Outputs
+.ipynb_checkpoints/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+
+# IDE / Editor Configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Specific Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
