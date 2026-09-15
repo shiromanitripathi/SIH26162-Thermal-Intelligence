@@ -1,15 +1,16 @@
 from fastapi import APIRouter, HTTPException
 
-from src.api.schemas.hotspot import Hotspot
+from src.api.schemas.hotspot import Hotspot, ClassificationRequest, ClassificationResponse
 from src.api.services.hotspot_service import (
     get_hotspots,
     get_hotspot,
+    classify_hotspot_cell
 )
 
 
 router = APIRouter(
     prefix="/api/hotspots",
-    tags=["Hotspots"],
+    tags=["Hotspots & Thermal ML Intelligence"],
 )
 
 
@@ -17,14 +18,31 @@ router = APIRouter(
 def list_hotspots():
     return get_hotspots()
 
+
 @router.get("/{hotspot_id}", response_model=Hotspot)
 def hotspot_detail(hotspot_id: int):
     hotspot = get_hotspot(hotspot_id)
-
     if hotspot is None:
         raise HTTPException(
             status_code=404,
             detail="Hotspot not found",
         )
-
     return hotspot
+
+
+@router.post("/classify", response_model=ClassificationResponse)
+def classify_thermal_source(request: ClassificationRequest):
+    """Classify thermal source and return confidence score + human-interpretable evidence."""
+    return classify_hotspot_cell(request.model_dump())
+
+
+@router.get("/{hotspot_id}/classify", response_model=ClassificationResponse)
+def classify_by_hotspot_id(hotspot_id: int):
+    """Classify an existing hotspot ID using ML model."""
+    hotspot = get_hotspot(hotspot_id)
+    if hotspot is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Hotspot not found",
+        )
+    return classify_hotspot_cell(hotspot)
