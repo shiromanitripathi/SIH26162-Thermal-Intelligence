@@ -14,7 +14,7 @@ import requests
 from dotenv import load_dotenv
 from sqlalchemy import text
 
-PROJECT_ROOT = Path(r"C:\SIH26162")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = PROJECT_ROOT / ".env"
 
 DATA_RAW_DIR = PROJECT_ROOT / "data" / "raw" / "FIRMS"
