@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -14,20 +16,40 @@ def test_health():
 
 
 def test_get_hotspots():
-    response = client.get("/api/hotspots")
+    mock_hotspots = [
+        {
+            "id": 1,
+            "latitude": 31.224,
+            "longitude": 75.770,
+            "brightness": 345.5,
+            "confidence": 0.95,
+        }
+    ]
 
-    assert response.status_code == 200
+    with patch(
+        "src.api.routers.hotspots.get_hotspots",
+        return_value=mock_hotspots,
+    ):
+        response = client.get("/api/hotspots")
 
-    data = response.json()
+        assert response.status_code == 200
 
-    assert isinstance(data, list)
+        data = response.json()
+
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["id"] == 1
 
 
 def test_get_hotspot_not_found():
-    response = client.get("/api/hotspots/999")
+    with patch(
+        "src.api.routers.hotspots.get_hotspot",
+        return_value=None,
+    ):
+        response = client.get("/api/hotspots/999")
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Hotspot not found"
+        assert response.status_code == 404
+        assert response.json()["detail"] == "Hotspot not found"
 
 
 def test_invalid_hotspot_id():
@@ -35,21 +57,28 @@ def test_invalid_hotspot_id():
 
     assert response.status_code == 422
 
+
 def test_nearby_hotspots():
-    response = client.get(
-        "/api/hotspots/nearby",
-        params={
-            "latitude": 31.224,
-            "longitude": 75.770,
-            "radius_meters": 2000,
-        },
-    )
+    with patch(
+        "src.api.routers.hotspots.get_nearby_hotspots",
+        return_value=[],
+    ):
+        response = client.get(
+            "/api/hotspots/nearby",
+            params={
+                "latitude": 31.224,
+                "longitude": 75.770,
+                "radius_meters": 2000,
+            },
+        )
 
-    assert response.status_code == 200
+        assert response.status_code == 200
 
-    data = response.json()
+        data = response.json()
 
-    assert isinstance(data, list)
+        assert isinstance(data, list)
+
+
 def test_nearby_hotspots_invalid_radius():
     response = client.get(
         "/api/hotspots/nearby",
