@@ -30,7 +30,7 @@ function eventIdentity(event) {
 function formatInteger(value) {
     return Number.isFinite(Number(value))
         ? Number(value).toLocaleString()
-        : "â€”";
+        : "—";
 }
 
 function Events() {
@@ -354,7 +354,7 @@ function Events() {
                                     </span>
                                     <strong>
                                         {selectedEvent.observation_count ??
-                                            "â€”"}
+                                            "—"}
                                     </strong>
                                 </div>
 
@@ -364,7 +364,7 @@ function Events() {
                                     </span>
                                     <strong>
                                         {selectedEvent.active_days ??
-                                            "â€”"}
+                                            "—"}
                                     </strong>
                                 </div>
 
@@ -374,7 +374,7 @@ function Events() {
                                     </span>
                                     <strong>
                                         {selectedEvent.persistence_days ??
-                                            "â€”"}
+                                            "—"}
                                     </strong>
                                 </div>
 
@@ -385,7 +385,7 @@ function Events() {
                                     <strong>
                                         {selectedEvent.recurrence_ratio ==
                                         null
-                                            ? "â€”"
+                                            ? "—"
                                             : Number(
                                                 selectedEvent.recurrence_ratio
                                             ).toFixed(
@@ -399,7 +399,7 @@ function Events() {
                                     <strong>
                                         {selectedEvent.mean_frp ==
                                         null
-                                            ? "â€”"
+                                            ? "—"
                                             : Number(
                                                 selectedEvent.mean_frp
                                             ).toFixed(
@@ -415,7 +415,7 @@ function Events() {
                                     <strong>
                                         {selectedEvent.confidence ==
                                         null
-                                            ? "â€”"
+                                            ? "—"
                                             : Number(
                                                 selectedEvent.confidence
                                             ).toFixed(
