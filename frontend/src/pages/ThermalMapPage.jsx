@@ -48,7 +48,7 @@ function classificationText(value) {
 function formatNumber(value, digits = 2) {
     return Number.isFinite(Number(value))
         ? Number(value).toFixed(digits)
-        : "â€”";
+        : "—";
 }
 
 function ThermalMapPage() {
@@ -355,8 +355,8 @@ function ThermalMapPage() {
                     />
 
                     <div className="map-coordinates">
-                        <span>LAT 06Â°â€“37Â° N</span>
-                        <span>LON 68Â°â€“98Â° E</span>
+                        <span>LAT 06°–37° N</span>
+                        <span>LON 68°–98° E</span>
                     </div>
                 </div>
 
@@ -438,7 +438,7 @@ function ThermalMapPage() {
                                     <span>ACTIVE DAYS</span>
                                     <strong>
                                         {selectedHotspot.active_days ??
-                                            "â€”"}
+                                            "—"}
                                     </strong>
                                 </div>
 
@@ -446,7 +446,7 @@ function ThermalMapPage() {
                                     <span>OBSERVATIONS</span>
                                     <strong>
                                         {selectedHotspot.observation_count ??
-                                            "â€”"}
+                                            "—"}
                                     </strong>
                                 </div>
                             </div>
@@ -457,7 +457,7 @@ function ThermalMapPage() {
                                     <strong>
                                         {selectedHotspot.mean_frp ==
                                         null
-                                            ? "â€”"
+                                            ? "—"
                                             : formatNumber(
                                                 selectedHotspot.mean_frp
                                             )}
@@ -471,7 +471,7 @@ function ThermalMapPage() {
                                     <strong>
                                         {selectedHotspot.confidence ==
                                         null
-                                            ? "â€”"
+                                            ? "—"
                                             : formatNumber(
                                                 selectedHotspot.confidence
                                             )}
@@ -484,7 +484,7 @@ function ThermalMapPage() {
                                     </span>
                                     <strong>
                                         {selectedHotspot.persistence_days ??
-                                            "â€”"}
+                                            "—"}
                                     </strong>
                                 </div>
 
@@ -618,12 +618,12 @@ function ThermalMapPage() {
 
                                     <span>
                                         {hotspot.active_days ??
-                                            "â€”"}
+                                            "—"}
                                     </span>
 
                                     <span>
                                         {hotspot.observation_count ??
-                                            "â€”"}
+                                            "—"}
                                     </span>
 
                                     <span>

@@ -15,7 +15,7 @@ import { getHotspotStats } from "../services/api";
 function formatInteger(value) {
     return Number.isFinite(Number(value))
         ? Number(value).toLocaleString()
-        : "â€”";
+        : "—";
 }
 
 function DistrictIntelligence() {

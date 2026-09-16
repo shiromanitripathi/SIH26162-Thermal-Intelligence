@@ -269,28 +269,28 @@ function Reports() {
                                     ? eventIdentity(
                                         event
                                     )
-                                    : "â€”"}
+                                    : "—"}
                             </strong>
                         </div>
 
                         <div className="report-info-item">
                             <span>GRID ID</span>
                             <strong>
-                                {event?.grid_id ?? "â€”"}
+                                {event?.grid_id ?? "—"}
                             </strong>
                         </div>
 
                         <div className="report-info-item">
                             <span>LATITUDE</span>
                             <strong>
-                                {event?.latitude ?? "â€”"}
+                                {event?.latitude ?? "—"}
                             </strong>
                         </div>
 
                         <div className="report-info-item">
                             <span>LONGITUDE</span>
                             <strong>
-                                {event?.longitude ?? "â€”"}
+                                {event?.longitude ?? "—"}
                             </strong>
                         </div>
                     </div>
@@ -317,7 +317,7 @@ function Reports() {
                                 {event?.first_seen &&
                                 event?.last_seen
                                     ? `${event.first_seen} to ${event.last_seen}`
-                                    : "â€”"}
+                                    : "—"}
                             </strong>
                         </div>
 
@@ -327,7 +327,7 @@ function Reports() {
                             </span>
                             <strong>
                                 {event?.observation_count ??
-                                    "â€”"}
+                                    "—"}
                             </strong>
                         </div>
 
@@ -335,7 +335,7 @@ function Reports() {
                             <span>MEAN FRP</span>
                             <strong>
                                 {event?.mean_frp == null
-                                    ? "â€”"
+                                    ? "—"
                                     : Number(
                                         event.mean_frp
                                     ).toFixed(2)}
@@ -348,7 +348,7 @@ function Reports() {
                             </span>
                             <strong>
                                 {event?.confidence == null
-                                    ? "â€”"
+                                    ? "—"
                                     : Number(
                                         event.confidence
                                     ).toFixed(2)}
@@ -376,14 +376,14 @@ function Reports() {
                             </span>
                             <strong>
                                 {event?.persistence_days ??
-                                    "â€”"}
+                                    "—"}
                             </strong>
                         </div>
 
                         <div className="report-info-item">
                             <span>ACTIVE DAYS</span>
                             <strong>
-                                {event?.active_days ?? "â€”"}
+                                {event?.active_days ?? "—"}
                             </strong>
                         </div>
 
@@ -394,7 +394,7 @@ function Reports() {
                             <strong>
                                 {event?.recurrence_ratio ==
                                 null
-                                    ? "â€”"
+                                    ? "—"
                                     : Number(
                                         event.recurrence_ratio
                                     ).toFixed(3)}
@@ -405,7 +405,7 @@ function Reports() {
                             <span>NIGHT RATIO</span>
                             <strong>
                                 {event?.night_ratio == null
-                                    ? "â€”"
+                                    ? "—"
                                     : Number(
                                         event.night_ratio
                                     ).toFixed(3)}
@@ -447,8 +447,8 @@ function Reports() {
                                 {event?.osm_context_available ===
                                 true
                                     ? event?.osm_industrial_count ??
-                                      "â€”"
-                                    : "â€”"}
+                                      "—"
+                                    : "—"}
                             </strong>
                         </div>
 
@@ -464,7 +464,7 @@ function Reports() {
                                     ? `${Number(
                                         event.osm_min_distance_m
                                     ).toFixed(1)} m`
-                                    : "â€”"}
+                                    : "—"}
                             </strong>
                         </div>
                     </div>
@@ -495,7 +495,7 @@ function Reports() {
                                 {modelUnavailable
                                     ? "Model unavailable"
                                     : prediction?.classification ??
-                                      "â€”"}
+                                      "—"}
                             </strong>
                         </div>
 
@@ -504,7 +504,7 @@ function Reports() {
                             <strong>
                                 {prediction?.model_score ==
                                 null
-                                    ? "â€”"
+                                    ? "—"
                                     : Number(
                                         prediction.model_score
                                     ).toFixed(4)}
@@ -515,7 +515,7 @@ function Reports() {
                             <span>MODEL VERSION</span>
                             <strong>
                                 {prediction?.model_version ??
-                                    "â€”"}
+                                    "—"}
                             </strong>
                         </div>
                     </div>
@@ -528,7 +528,7 @@ function Reports() {
                         <p>
                             {prediction?.evidence?.length
                                 ? prediction.evidence.join(
-                                    " â€¢ "
+                                    " • "
                                 )
                                 : "No model evidence is available."}
                         </p>
@@ -594,7 +594,7 @@ function Reports() {
                     </p>
 
                     <div>
-                        FIRMS THERMAL INTELLIGENCE â€¢ SIH26162
+                        FIRMS THERMAL INTELLIGENCE • SIH26162
                     </div>
                 </footer>
             </article>

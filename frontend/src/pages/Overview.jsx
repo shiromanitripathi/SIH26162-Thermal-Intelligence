@@ -29,7 +29,7 @@ function hotspotIdentity(hotspot) {
 function formatInteger(value) {
     return Number.isFinite(Number(value))
         ? Number(value).toLocaleString()
-        : "â€”";
+        : "—";
 }
 
 function Overview() {
@@ -298,11 +298,11 @@ function Overview() {
 
                         <div className="intelligence-flow">
                             <span>THERMAL</span>
-                            <i>â†’</i>
+                            <i>→</i>
                             <span>TEMPORAL</span>
-                            <i>â†’</i>
+                            <i>→</i>
                             <span>CONTEXT</span>
-                            <i>â†’</i>
+                            <i>→</i>
                             <strong>MODEL</strong>
                         </div>
                     </div>
@@ -423,13 +423,13 @@ function Overview() {
 
                                 <div className="activity-property">
                                     <span>ACTIVE DAYS</span>
-                                    {hotspot.active_days ?? "â€”"}
+                                    {hotspot.active_days ?? "—"}
                                 </div>
 
                                 <div className="activity-property">
                                     <span>OBSERVATIONS</span>
                                     {hotspot.observation_count ??
-                                        "â€”"}
+                                        "—"}
                                 </div>
 
                                 <div className="activity-status">
