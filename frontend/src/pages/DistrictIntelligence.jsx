@@ -147,7 +147,10 @@ function DistrictIntelligence() {
 
             {/* MAIN GRID */}
 
-            <section className="intelligence-main-grid">
+            <section
+                id="district-intelligence"
+                className="intelligence-main-grid nav-section-target"
+            >
 
                 {/* REGION SELECTOR */}
 
@@ -174,8 +177,8 @@ function DistrictIntelligence() {
                             <button
                                 key={region.id}
                                 className={`region-item ${selectedRegion.id === region.id
-                                        ? "active"
-                                        : ""
+                                    ? "active"
+                                    : ""
                                     }`}
                                 onClick={() => setSelectedRegion(region)}
                             >
@@ -270,7 +273,10 @@ function DistrictIntelligence() {
 
             {/* TEMPORAL TRENDS */}
 
-            <section className="regional-trends-section">
+            <section
+                id="regional-trends"
+                className="regional-trends-section nav-section-target"
+            >
 
                 <div className="intelligence-panel-header">
 
@@ -374,7 +380,10 @@ function DistrictIntelligence() {
 
             {/* PRIORITY SOURCES */}
 
-            <section className="priority-intelligence-section">
+            <section
+                id="priority-sources"
+                className="priority-intelligence-section nav-section-target"
+            >
 
                 <div className="intelligence-panel-header">
 

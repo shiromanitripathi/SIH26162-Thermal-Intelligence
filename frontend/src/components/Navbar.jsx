@@ -15,48 +15,124 @@ const menus = [
         label: "OVERVIEW",
         icon: Activity,
         items: [
-            { label: "Command Center", path: "/" },
-            { label: "Live Activity", path: "/" },
-            { label: "System Status", path: "/" },
+            {
+                label: "Command Center",
+                path: "/",
+                hash: "#command-center",
+            },
+            {
+                label: "Live Activity",
+                path: "/",
+                hash: "#live-activity",
+            },
+            {
+                label: "System Status",
+                path: "/",
+                hash: "#system-status",
+            },
         ],
     },
+
     {
         label: "EXPLORE",
         icon: Map,
         items: [
-            { label: "Thermal Map", path: "/map" },
-            { label: "Hotspot Search", path: "/events" },
-            { label: "Event Explorer", path: "/events" },
-            { label: "Persistent Sources", path: "/analysis" },
+            {
+                label: "Thermal Map",
+                path: "/map",
+                hash: "#thermal-map",
+            },
+            {
+                label: "Hotspot Search",
+                path: "/events",
+                hash: "#hotspot-search",
+            },
+            {
+                label: "Event Explorer",
+                path: "/events",
+                hash: "#event-explorer",
+            },
+            {
+                label: "Persistent Sources",
+                path: "/map",
+                hash: "#persistent-sources",
+            },
         ],
     },
+
     {
         label: "ANALYSIS",
         icon: BrainCircuit,
         items: [
-            { label: "AI Assessment", path: "/analysis" },
-            { label: "Thermal History", path: "/analysis" },
-            { label: "Persistence", path: "/analysis" },
-            { label: "Recurrence", path: "/analysis" },
-            { label: "Context Intelligence", path: "/analysis" },
+            {
+                label: "AI Assessment",
+                path: "/analysis",
+                hash: "#ai-assessment",
+            },
+            {
+                label: "Thermal History",
+                path: "/analysis",
+                hash: "#thermal-history",
+            },
+            {
+                label: "Persistence",
+                path: "/analysis",
+                hash: "#persistence",
+            },
+            {
+                label: "Recurrence",
+                path: "/analysis",
+                hash: "#recurrence",
+            },
+            {
+                label: "Context Intelligence",
+                path: "/analysis",
+                hash: "#context-intelligence",
+            },
         ],
     },
+
     {
         label: "INTELLIGENCE",
         icon: BarChart3,
         items: [
-            { label: "District Intelligence", path: "/intelligence" },
-            { label: "Regional Trends", path: "/intelligence" },
-            { label: "Priority Sources", path: "/intelligence" },
+            {
+                label: "District Intelligence",
+                path: "/intelligence",
+                hash: "#district-intelligence",
+            },
+            {
+                label: "Regional Trends",
+                path: "/intelligence",
+                hash: "#regional-trends",
+            },
+            {
+                label: "Priority Sources",
+                path: "/intelligence",
+                hash: "#priority-sources",
+            },
         ],
     },
+
     {
         label: "REPORTS",
         icon: FileText,
         items: [
-            { label: "Investigation Report", path: "/reports" },
-            { label: "Saved Investigations", path: "/reports" },
-            { label: "Export / Print", path: "/reports" },
+            {
+                label: "Investigation Report",
+                path: "/reports",
+                hash: "#investigation-report",
+            },
+            {
+                label: "Saved Investigations",
+                path: "/reports",
+                hash: "#saved-investigations",
+            },
+            {
+                label: "Export / Print",
+                path: "/reports",
+                hash: "#export-print",
+            },
         ],
     },
 ];
@@ -121,11 +197,9 @@ function Navbar() {
                                     {menu.items.map((item) => (
                                         <NavLink
                                             key={item.label}
-                                            to={item.path}
+                                            to={`${item.path}${item.hash || ""}`}
                                             className="dropdown-item"
-                                            onClick={() =>
-                                                setOpenMenu(null)
-                                            }
+                                            onClick={() => setOpenMenu(null)}
                                         >
                                             {item.label}
                                         </NavLink>

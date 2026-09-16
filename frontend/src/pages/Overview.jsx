@@ -120,7 +120,10 @@ function Overview() {
             </div>
 
             {/* KPI SECTION */}
-            <section className="dashboard-section">
+            <section
+                id="command-center"
+                className="dashboard-section nav-section-target"
+            >
                 <div className="section-heading">
                     <div>
                         <span className="section-index">01</span>
@@ -269,7 +272,10 @@ function Overview() {
             </section>
 
             {/* ACTIVITY */}
-            <section className="dashboard-section">
+            <section
+                id="live-activity"
+                className="dashboard-section nav-section-target"
+            >
                 <div className="section-heading">
                     <div>
                         <span className="section-index">04</span>
@@ -373,7 +379,10 @@ function Overview() {
             </section>
 
             {/* SYSTEM FOOTER */}
-            <section className="system-overview">
+            <section
+                id="system-status"
+                className="system-overview nav-section-target"
+            >
                 <div className="system-item">
                     <Activity size={17} />
                     <div>

@@ -78,7 +78,10 @@ function Reports() {
                     Structured analyst report for a selected thermal event.
                 </p>
 
-                <div className="report-toolbar">
+                <div
+                    id="export-print"
+                    className="report-toolbar nav-section-target"
+                >
 
                     <a
                         href={`/analysis?event=${event.id}`}
@@ -120,7 +123,10 @@ function Reports() {
 
             {/* REPORT DOCUMENT */}
 
-            <article className="investigation-report">
+            <article
+                id="investigation-report"
+                className="investigation-report nav-section-target"
+            >
 
                 {/* REPORT TOP */}
 

@@ -121,7 +121,10 @@ function ThermalMapPage() {
             </div>
 
             {/* TOOLBAR */}
-            <section className="map-toolbar">
+            <section
+                id="hotspot-search"
+                className="map-toolbar nav-section-target"
+            >
 
                 <div className="map-search">
                     <Search size={17} />
@@ -229,7 +232,10 @@ function ThermalMapPage() {
             )}
 
             {/* MAIN MAP AREA */}
-            <section className="map-workspace">
+            <section
+                id="thermal-map"
+                className="map-workspace nav-section-target"
+            >
 
                 <div className="map-main-panel">
 
@@ -386,7 +392,10 @@ function ThermalMapPage() {
             </section>
 
             {/* SOURCE TABLE */}
-            <section className="source-list-section">
+            <section
+                id="persistent-sources"
+                className="source-list-section nav-section-target"
+            >
 
                 <div className="section-heading">
 
@@ -430,8 +439,8 @@ function ThermalMapPage() {
                         filteredHotspots.map((hotspot) => (
                             <button
                                 className={`source-table-row ${selectedHotspot?.id === hotspot.id
-                                        ? "selected"
-                                        : ""
+                                    ? "selected"
+                                    : ""
                                     }`}
                                 key={hotspot.id}
                                 onClick={() => handleSelectHotspot(hotspot)}
