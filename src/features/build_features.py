@@ -160,79 +160,12 @@ def aggregate_firms_spatial(df: pd.DataFrame, grid_size: float = GRID_SIZE) -> p
 
 
 def fetch_osm_context_single(lat: float, lon: float, radius: float = OSM_RADIUS_METERS) -> dict:
-    """Fetch OpenStreetMap context features around a single (lat, lon) centroid."""
-    if not HAS_OSMNX:
-        return {
-            "osm_feature_count": 0,
-            "osm_industrial_count": 0,
-            "osm_power_count": 0,
-            "osm_manmade_count": 0,
-            "osm_min_distance_m": float(radius)
-        }
-        
-    tags = {
-        "landuse": ["industrial", "construction", "commercial", "quarry"],
-        "industrial": True,
-        "power": True,
-        "man_made": ["works", "storage_tank", "chimney", "petroleum_refinery", "pipeline"],
-        "building": ["industrial", "manufacture"]
-    }
-    
-    try:
-        ox.settings.timeout = 5
-        gdf = ox.features_from_point((lat, lon), tags=tags, dist=radius)
-        
-        if len(gdf) == 0:
-            return {
-                "osm_feature_count": 0,
-                "osm_industrial_count": 0,
-                "osm_power_count": 0,
-                "osm_manmade_count": 0,
-                "osm_min_distance_m": float(radius)
-            }
-            
-        feature_count = len(gdf)
-        industrial_count = 0
-        power_count = 0
-        manmade_count = 0
-        
-        if "landuse" in gdf.columns:
-            industrial_count += (gdf["landuse"].isin(["industrial", "construction", "quarry"])).sum()
-        if "industrial" in gdf.columns:
-            industrial_count += gdf["industrial"].notna().sum()
-        if "building" in gdf.columns:
-            industrial_count += (gdf["building"].isin(["industrial", "manufacture"])).sum()
-        if "power" in gdf.columns:
-            power_count = gdf["power"].notna().sum()
-        if "man_made" in gdf.columns:
-            manmade_count = gdf["man_made"].notna().sum()
-            
-        center_pt = Point(lon, lat)
-        min_dist_m = float(radius)
-        for geom in gdf.geometry:
-            try:
-                d_deg = center_pt.distance(geom)
-                d_m = d_deg * 111000.0
-                if d_m < min_dist_m:
-                    min_dist_m = d_m
-            except Exception:
-                pass
-                
-        return {
-            "osm_feature_count": feature_count,
-            "osm_industrial_count": int(industrial_count),
-            "osm_power_count": int(power_count),
-            "osm_manmade_count": int(manmade_count),
-            "osm_min_distance_m": round(min_dist_m, 2)
-        }
-    except Exception:
-        return {
-            "osm_feature_count": 0,
-            "osm_industrial_count": 0,
-            "osm_power_count": 0,
-            "osm_manmade_count": 0,
-            "osm_min_distance_m": float(radius)
-        }
+    """Deprecated legacy helper; unavailable OSM must not be represented as zero."""
+    raise RuntimeError(
+        "Legacy direct OSM lookup is disabled because unavailable/query-failure "
+        "states were previously represented as zero-valued OSM context. "
+        "Use scripts/build_osm_features.py or scripts/enrich_live_osm_context.py."
+    )
 
 
 def generate_fast_osm_context(spatial_df: pd.DataFrame, cache_path: Path = PROCESSED_OSM_FEATURES) -> pd.DataFrame:
