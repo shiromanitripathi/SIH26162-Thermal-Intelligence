@@ -153,6 +153,12 @@ def get_hotspot_stats() -> dict:
             COUNT(*) FILTER (
                 WHERE target_persistent_source = 0
             ) AS ephemeral_candidate_cells,
+            COUNT(*) FILTER (
+                WHERE target_persistent_source IS NULL
+            ) AS unclassified_candidate_cells,
+            COUNT(*) FILTER (
+                WHERE target_persistent_source IS NOT NULL
+            ) AS labelled_candidate_cells,
             MAX(active_days) AS max_active_days,
             MAX(persistence_days) AS max_persistence_days,
             AVG(night_ratio) AS mean_night_ratio,

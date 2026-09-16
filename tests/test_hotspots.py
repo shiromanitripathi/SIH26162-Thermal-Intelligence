@@ -1,4 +1,4 @@
-﻿from unittest.mock import patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -120,3 +120,28 @@ def test_nearby_hotspots_invalid_latitude():
     )
 
     assert response.status_code == 422
+
+
+def test_hotspot_stats_exposes_unclassified_cells():
+    mock_stats = {
+        "total_spatial_cells": 5,
+        "total_raw_observations": 12,
+        "persistent_candidate_cells": 0,
+        "ephemeral_candidate_cells": 0,
+        "unclassified_candidate_cells": 5,
+        "labelled_candidate_cells": 0,
+        "max_active_days": 3,
+        "max_persistence_days": 7,
+        "mean_night_ratio": 0.25,
+        "osm_context_cells": 1,
+    }
+
+    with patch(
+        "src.api.routers.hotspots.get_hotspot_stats",
+        return_value=mock_stats,
+    ):
+        response = client.get("/api/hotspots/stats")
+
+    assert response.status_code == 200
+    assert response.json()["unclassified_candidate_cells"] == 5
+    assert response.json()["labelled_candidate_cells"] == 0

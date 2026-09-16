@@ -196,11 +196,11 @@ function Overview() {
                     />
 
                     <StatCard
-                        label="Persistent Candidates"
+                        label="Unclassified Cells"
                         value={formatInteger(
-                            stats?.persistent_candidate_cells
+                            stats?.unclassified_candidate_cells
                         )}
-                        description="Heuristic candidate cells"
+                        description="Cells without heuristic candidate labels"
                         type="activity"
                     />
 

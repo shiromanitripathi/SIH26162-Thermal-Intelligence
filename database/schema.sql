@@ -1,4 +1,4 @@
-﻿-- SIH26162 Thermal Intelligence
+-- SIH26162 Thermal Intelligence
 -- PostgreSQL + PostGIS schema
 -- Spatial reference system: WGS 84 (EPSG:4326)
 
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS thermal_events (
     max_bright_t31 DOUBLE PRECISION,
     mean_confidence_score DOUBLE PRECISION,
 
-    type_2_count INTEGER NOT NULL DEFAULT 0,
+    type_2_count INTEGER,
     type_2_ratio DOUBLE PRECISION,
 
     -- Heuristic labels only; not verified ground truth.

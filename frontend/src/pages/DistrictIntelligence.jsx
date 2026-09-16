@@ -108,17 +108,17 @@ function DistrictIntelligence() {
                     </div>
 
                     <span>
-                        PERSISTENT CANDIDATES
+                        UNCLASSIFIED CELLS
                     </span>
 
                     <strong>
                         {formatInteger(
-                            stats?.persistent_candidate_cells
+                            stats?.unclassified_candidate_cells
                         )}
                     </strong>
 
                     <small>
-                        Heuristic candidate label
+                        No heuristic candidate label
                     </small>
                 </div>
 
@@ -223,11 +223,11 @@ function DistrictIntelligence() {
 
                         <div>
                             <span>
-                                PERSISTENT CANDIDATES
+                                UNCLASSIFIED CELLS
                             </span>
                             <strong>
                                 {formatInteger(
-                                    stats?.persistent_candidate_cells
+                                    stats?.unclassified_candidate_cells
                                 )}
                             </strong>
                         </div>
