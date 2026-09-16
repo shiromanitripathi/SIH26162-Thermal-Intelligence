@@ -73,8 +73,10 @@ function Analysis() {
         try {
             const payload = {
                 event_id: event.id,
-                latitude: event.latitude,
-                longitude: event.longitude,
+                features: {
+                    latitude: event.latitude,
+                    longitude: event.longitude
+                }
             };
 
             const result = await predictHotspot(payload);
@@ -227,7 +229,10 @@ function Analysis() {
 
                 {/* TEMPORAL */}
 
-                <div className="evidence-card">
+                <div
+                    id="persistence"
+                    className="evidence-card nav-section-target"
+                >
 
                     <div className="evidence-card-header">
                         <div className="evidence-icon">
@@ -266,7 +271,10 @@ function Analysis() {
 
                 {/* CONTEXT */}
 
-                <div className="evidence-card">
+                <div
+                    id="context-intelligence"
+                    className="evidence-card nav-section-target"
+                >
 
                     <div className="evidence-card-header">
                         <div className="evidence-icon">
@@ -307,7 +315,10 @@ function Analysis() {
 
             {/* ANALYZE */}
 
-            <section className="ai-action-section">
+            <section
+                id="ai-assessment"
+                className="ai-action-section nav-section-target"
+            >
 
                 <div className="ai-action-content">
 
@@ -408,7 +419,7 @@ function Analysis() {
                         <span>CONFIDENCE</span>
 
                         <strong>
-                            {prediction?.confidence ?? "—"}
+                            {prediction?.model_score ?? "—"}
                         </strong>
 
                         <small>
@@ -461,7 +472,10 @@ function Analysis() {
 
             {/* TIMELINE */}
 
-            <section className="analysis-timeline-section">
+            <section
+                id="thermal-history"
+                className="analysis-timeline-section nav-section-target"
+            >
 
                 <div className="analysis-section-heading">
 

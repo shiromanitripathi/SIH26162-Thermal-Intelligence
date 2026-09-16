@@ -3973,4 +3973,12 @@
     border-color: #d9d9d9;
     color: #555;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  .nav-section-target {
+    scroll-margin-top: 100px;
+  }
 }

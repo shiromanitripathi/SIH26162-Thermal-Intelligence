@@ -96,7 +96,10 @@ function Events() {
 
             </section>
 
-            <section className="events-controls">
+            <section
+                id="hotspot-search"
+                className="events-controls nav-section-target"
+            >
 
                 <div className="event-search">
                     <Search size={18} />
@@ -123,7 +126,10 @@ function Events() {
 
             </section>
 
-            <section className="events-workspace">
+            <section
+                id="event-explorer"
+                className="events-workspace nav-section-target"
+            >
 
                 <div className="event-list-panel">
 
@@ -152,8 +158,8 @@ function Events() {
                                 <button
                                     key={event.id}
                                     className={`event-row ${selectedEvent?.id === event.id
-                                            ? "selected"
-                                            : ""
+                                        ? "selected"
+                                        : ""
                                         }`}
                                     onClick={() => setSelectedEvent(event)}
                                 >
