@@ -118,3 +118,13 @@ def test_predictor_failure_returns_clean_500(monkeypatch):
     assert response.json() == {
         "detail": "Prediction service failed"
     }
+
+def test_predict_missing_features():
+    response = client.post(
+        "/api/predict",
+        json={
+            "event_id": "EVT_TEST_001",
+        },
+    )
+
+    assert response.status_code == 422
