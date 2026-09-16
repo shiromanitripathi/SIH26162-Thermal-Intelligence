@@ -51,11 +51,48 @@ display(df[["brightness", "bright_t31", "frp"]].describe())''')
 cells_02 = [
     md_cell('# 02 — Spatial Aggregation, Feature Engineering, and OSM Context\n\nAggregates 1.74M observations into 644k spatial cells and merges OpenStreetMap context.'),
     code_cell('''import pandas as pd
-import numpy as np
-from src.features.build_features import build_full_feature_dataset
+from pathlib import Path
 
-merged_df = build_full_feature_dataset()
+cwd = Path.cwd().resolve()
+project_root = next(
+    path
+    for path in [cwd, *cwd.parents]
+    if (path / "data").exists() and (path / "src").exists()
+)
+
+firms_path = project_root / "data" / "processed" / "firms_spatial_features.csv"
+osm_path = project_root / "data" / "processed" / "osm_context_features_real.csv"
+
+firms_df = pd.read_csv(firms_path)
+osm_df = pd.read_csv(osm_path)
+
+if "osm_context_available" not in osm_df.columns:
+    raise RuntimeError(
+        "OSM dataset lacks provenance metadata. Regenerate it with scripts/build_osm_features.py."
+    )
+
+osm_cols = [
+    "grid_id",
+    "osm_context_available",
+    "osm_feature_count",
+    "osm_industrial_count",
+    "osm_power_count",
+    "osm_manmade_count",
+    "osm_min_distance_m",
+]
+
+merged_df = firms_df.merge(
+    osm_df[osm_cols],
+    on="grid_id",
+    how="left",
+    validate="one_to_one",
+)
+
 print("Merged Dataset Shape:", merged_df.shape)
+print(
+    "Queried OSM cells:",
+    int(merged_df["osm_context_available"].fillna(False).sum()),
+)
 display(merged_df.head())'''),
     code_cell('''print("=== SPATIAL AND PERSISTENCE SUMMARY ===")
 print("Observation Count Distribution:")

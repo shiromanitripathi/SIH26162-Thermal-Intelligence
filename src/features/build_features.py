@@ -160,179 +160,32 @@ def aggregate_firms_spatial(df: pd.DataFrame, grid_size: float = GRID_SIZE) -> p
 
 
 def fetch_osm_context_single(lat: float, lon: float, radius: float = OSM_RADIUS_METERS) -> dict:
-    """Fetch OpenStreetMap context features around a single (lat, lon) centroid."""
-    if not HAS_OSMNX:
-        return {
-            "osm_feature_count": 0,
-            "osm_industrial_count": 0,
-            "osm_power_count": 0,
-            "osm_manmade_count": 0,
-            "osm_min_distance_m": float(radius)
-        }
-        
-    tags = {
-        "landuse": ["industrial", "construction", "commercial", "quarry"],
-        "industrial": True,
-        "power": True,
-        "man_made": ["works", "storage_tank", "chimney", "petroleum_refinery", "pipeline"],
-        "building": ["industrial", "manufacture"]
-    }
-    
-    try:
-        ox.settings.timeout = 5
-        gdf = ox.features_from_point((lat, lon), tags=tags, dist=radius)
-        
-        if len(gdf) == 0:
-            return {
-                "osm_feature_count": 0,
-                "osm_industrial_count": 0,
-                "osm_power_count": 0,
-                "osm_manmade_count": 0,
-                "osm_min_distance_m": float(radius)
-            }
-            
-        feature_count = len(gdf)
-        industrial_count = 0
-        power_count = 0
-        manmade_count = 0
-        
-        if "landuse" in gdf.columns:
-            industrial_count += (gdf["landuse"].isin(["industrial", "construction", "quarry"])).sum()
-        if "industrial" in gdf.columns:
-            industrial_count += gdf["industrial"].notna().sum()
-        if "building" in gdf.columns:
-            industrial_count += (gdf["building"].isin(["industrial", "manufacture"])).sum()
-        if "power" in gdf.columns:
-            power_count = gdf["power"].notna().sum()
-        if "man_made" in gdf.columns:
-            manmade_count = gdf["man_made"].notna().sum()
-            
-        center_pt = Point(lon, lat)
-        min_dist_m = float(radius)
-        for geom in gdf.geometry:
-            try:
-                d_deg = center_pt.distance(geom)
-                d_m = d_deg * 111000.0
-                if d_m < min_dist_m:
-                    min_dist_m = d_m
-            except Exception:
-                pass
-                
-        return {
-            "osm_feature_count": feature_count,
-            "osm_industrial_count": int(industrial_count),
-            "osm_power_count": int(power_count),
-            "osm_manmade_count": int(manmade_count),
-            "osm_min_distance_m": round(min_dist_m, 2)
-        }
-    except Exception:
-        return {
-            "osm_feature_count": 0,
-            "osm_industrial_count": 0,
-            "osm_power_count": 0,
-            "osm_manmade_count": 0,
-            "osm_min_distance_m": float(radius)
-        }
+    """Deprecated legacy helper; unavailable OSM must not be represented as zero."""
+    raise RuntimeError(
+        "Legacy direct OSM lookup is disabled because unavailable/query-failure "
+        "states were previously represented as zero-valued OSM context. "
+        "Use scripts/build_osm_features.py or scripts/enrich_live_osm_context.py."
+    )
 
 
 def generate_fast_osm_context(spatial_df: pd.DataFrame, cache_path: Path = PROCESSED_OSM_FEATURES) -> pd.DataFrame:
-    """
-    Generate cached OSM context features rapidly using spatial proximity & density heuristics,
-    allowing instantaneous execution while keeping full compatibility.
-    """
-    PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
-    candidates = spatial_df[
-        (spatial_df["target_persistent_source"] == 1) |
-        (spatial_df["observation_count"] >= 10)
-    ].copy()
-    
-    print(f"Generating fast OSM context for {len(candidates):,} persistent candidate thermal grid cells...")
-    
-    np.random.seed(42)
-    
-    is_persistent = candidates["target_persistent_source"] == 1
-    high_obs = candidates["observation_count"] > 50
-    
-    candidates["osm_feature_count"] = np.where(
-        is_persistent,
-        np.random.randint(5, 35, size=len(candidates)),
-        np.where(high_obs, np.random.randint(1, 10, size=len(candidates)), 0)
+    """Deprecated: synthetic OSM generation is intentionally disabled."""
+    raise RuntimeError(
+        "Synthetic OSM context generation is disabled. "
+        "Use scripts/build_osm_features.py for real historical OSM enrichment "
+        "or scripts/enrich_live_osm_context.py for the live runtime pipeline."
     )
-    
-    candidates["osm_industrial_count"] = np.where(
-        is_persistent,
-        np.random.randint(2, 15, size=len(candidates)),
-        np.where(high_obs, np.random.randint(0, 4, size=len(candidates)), 0)
-    )
-    
-    candidates["osm_power_count"] = np.where(
-        is_persistent & (candidates["night_ratio"] > 0.5),
-        np.random.randint(1, 5, size=len(candidates)),
-        0
-    )
-    
-    candidates["osm_manmade_count"] = np.where(
-        is_persistent,
-        np.random.randint(1, 8, size=len(candidates)),
-        0
-    )
-    
-    candidates["osm_min_distance_m"] = np.where(
-        is_persistent,
-        np.random.uniform(50.0, 450.0, size=len(candidates)).round(2),
-        np.where(high_obs, np.random.uniform(300.0, 1200.0, size=len(candidates)).round(2), 2000.0)
-    )
-    
-    osm_cols = ["grid_id", "lat_grid", "lon_grid", "osm_feature_count",
-                "osm_industrial_count", "osm_power_count", "osm_manmade_count", "osm_min_distance_m"]
-    
-    osm_df = candidates[osm_cols]
-    osm_df.to_csv(cache_path, index=False)
-    print(f"OSM context dataset saved instantly to {cache_path}")
-    
-    return osm_df
 
 
 def build_full_feature_dataset() -> pd.DataFrame:
-    """Build and save complete spatial + OSM feature dataset in seconds."""
-    t0 = time.time()
-    print("Step 1: Loading raw FIRMS data...")
-    raw_df = load_raw_firms()
-    print(f"Loaded {len(raw_df):,} FIRMS observations in {time.time() - t0:.2f}s.")
-    
-    t1 = time.time()
-    print("Step 2: Aggregating FIRMS spatial & temporal grid cell features...")
-    spatial_df = aggregate_firms_spatial(raw_df)
-    print(f"Created aggregated dataset with {len(spatial_df):,} unique spatial cells in {time.time() - t1:.2f}s.")
-    
-    spatial_df.to_csv(PROCESSED_FIRMS_FEATURES, index=False)
-    print(f"Saved spatial features to {PROCESSED_FIRMS_FEATURES}")
-    
-    t2 = time.time()
-    print("Step 3: Generating fast OpenStreetMap (OSM) geographic context...")
-    osm_cache = generate_fast_osm_context(spatial_df)
-    print(f"Generated OSM context in {time.time() - t2:.2f}s.")
-    
-    t3 = time.time()
-    print("Step 4: Merging FIRMS spatial features with OSM context features...")
-    osm_cols_to_merge = ["grid_id", "osm_feature_count", "osm_industrial_count",
-                         "osm_power_count", "osm_manmade_count", "osm_min_distance_m"]
-    osm_subset = osm_cache[osm_cols_to_merge].drop_duplicates(subset=["grid_id"])
-    merged_df = spatial_df.merge(osm_subset, on="grid_id", how="left")
-    
-    merged_df["osm_feature_count"] = merged_df["osm_feature_count"].fillna(0)
-    merged_df["osm_industrial_count"] = merged_df["osm_industrial_count"].fillna(0)
-    merged_df["osm_power_count"] = merged_df["osm_power_count"].fillna(0)
-    merged_df["osm_manmade_count"] = merged_df["osm_manmade_count"].fillna(0)
-    merged_df["osm_min_distance_m"] = merged_df["osm_min_distance_m"].fillna(2000.0)
-    
-    merged_df.to_csv(MERGED_DATASET_PATH, index=False)
-    print(f"Merged dataset successfully saved to {MERGED_DATASET_PATH} with shape {merged_df.shape} in {time.time() - t3:.2f}s.")
-    print(f"Total feature pipeline execution completed in {time.time() - t0:.2f}s!")
-    
-    return merged_df
-
+    """Deprecated legacy pipeline retained only to fail safely."""
+    raise RuntimeError(
+        "The legacy full feature builder is disabled because it generated "
+        "synthetic OSM values. Use the real OSM enrichment pipelines instead."
+    )
 
 if __name__ == "__main__":
-    build_full_feature_dataset()
+    raise SystemExit(
+        "Legacy synthetic feature builder is disabled. "
+        "Use the provenance-aware real OSM pipelines instead."
+    )
