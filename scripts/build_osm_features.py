@@ -82,7 +82,6 @@ OSM_CONTEXT_COLUMNS = [
     "osm_min_distance_m",
 ]
 
-DEFAULT_OSM_DISTANCE_M = float(DEFAULT_RADIUS_M)
 
 
 # ---------------------------------------------------------------------------
@@ -601,7 +600,11 @@ def assemble_final_output(
         on="grid_id",
         how="left",
         validate="one_to_one",
+        indicator="_osm_merge",
     )
+
+    result["osm_context_available"] = result["_osm_merge"].eq("both")
+    result = result.drop(columns=["_osm_merge"])
 
     count_columns = [
         "osm_feature_count",
@@ -611,22 +614,14 @@ def assemble_final_output(
     ]
 
     for column in count_columns:
-
-        result[column] = (
-            pd.to_numeric(
-                result[column],
-                errors="coerce",
-            )
-            .fillna(0)
-            .astype("int64")
-        )
-
-    result["osm_min_distance_m"] = (
-        pd.to_numeric(
-            result["osm_min_distance_m"],
+        result[column] = pd.to_numeric(
+            result[column],
             errors="coerce",
-        )
-        .fillna(DEFAULT_OSM_DISTANCE_M)
+        ).astype("Int64")
+
+    result["osm_min_distance_m"] = pd.to_numeric(
+        result["osm_min_distance_m"],
+        errors="coerce",
     )
 
     result = (
@@ -650,9 +645,24 @@ def assemble_final_output(
             "Final OSM dataset contains duplicate grid_id values."
         )
 
-    if result.isna().any().any():
+    osm_value_columns = [
+        "osm_feature_count",
+        "osm_industrial_count",
+        "osm_power_count",
+        "osm_manmade_count",
+        "osm_min_distance_m",
+    ]
+
+    available = result["osm_context_available"]
+
+    if result.loc[available, osm_value_columns].isna().any().any():
         raise RuntimeError(
-            "Final OSM dataset contains missing values."
+            "Queried OSM context rows contain missing values."
+        )
+
+    if result.loc[~available, osm_value_columns].notna().any().any():
+        raise RuntimeError(
+            "Unqueried OSM rows contain fabricated context values."
         )
 
     # -----------------------------------------------------------------------
@@ -689,8 +699,8 @@ def assemble_final_output(
     )
 
     print(
-        f"Cells with OSM: "
-        f"{int((result['osm_feature_count'] > 0).sum()):,}"
+        f"Queried OSM context cells: "
+        f"{int(result.osm_context_available.sum()):,}"
     )
 
     print(
@@ -709,8 +719,8 @@ def assemble_final_output(
     )
 
     print(
-        f"Missing OSM context cells: "
-        f"{int((result['osm_feature_count'] == 0).sum()):,}"
+        f"Unqueried OSM context cells: "
+        f"{int((~result.osm_context_available).sum()):,}"
     )
 
     print()
