@@ -21,20 +21,9 @@ def test_get_hotspots():
     data = response.json()
 
     assert isinstance(data, list)
-    assert len(data) > 0
 
 
-def test_get_hotspot():
-    response = client.get("/api/hotspots/1")
-
-    assert response.status_code == 200
-
-    data = response.json()
-
-    assert data["id"] == 1
-
-
-def test_hotspot_not_found():
+def test_get_hotspot_not_found():
     response = client.get("/api/hotspots/999")
 
     assert response.status_code == 404
@@ -43,5 +32,32 @@ def test_hotspot_not_found():
 
 def test_invalid_hotspot_id():
     response = client.get("/api/hotspots/abc")
+
+    assert response.status_code == 422
+
+def test_nearby_hotspots():
+    response = client.get(
+        "/api/hotspots/nearby",
+        params={
+            "latitude": 31.224,
+            "longitude": 75.770,
+            "radius_meters": 2000,
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert isinstance(data, list)
+def test_nearby_hotspots_invalid_radius():
+    response = client.get(
+        "/api/hotspots/nearby",
+        params={
+            "latitude": 31.224,
+            "longitude": 75.770,
+            "radius_meters": 0,
+        },
+    )
 
     assert response.status_code == 422

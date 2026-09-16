@@ -1,32 +1,28 @@
 from src.models.predictor import get_predictor
-
-MOCK_HOTSPOTS = [
-    {
-        "id": 1,
-        "latitude": 23.7600,
-        "longitude": 86.4000,
-        "brightness": 345.5,
-        "confidence": 0.95,
-    },
-    {
-        "id": 2,
-        "latitude": 21.1000,
-        "longitude": 72.6400,
-        "brightness": 332.1,
-        "confidence": 0.88,
-    },
-]
-
+from src.api.repositories.hotspot_repository import (
+    get_all_hotspots,
+    get_hotspot_by_id,
+    get_hotspots_nearby,
+)
 
 def get_hotspots():
-    return MOCK_HOTSPOTS
-
+    return get_all_hotspots()
 
 def get_hotspot(hotspot_id: int):
-    for hotspot in MOCK_HOTSPOTS:
-        if hotspot["id"] == hotspot_id:
-            return hotspot
-    return None
+    return get_hotspot_by_id(hotspot_id)
+
+def get_nearby_hotspots(
+    latitude: float,
+    longitude: float,
+    radius_meters: float = 2000,
+) -> list[dict]:
+    return get_hotspots_nearby(
+        latitude,
+        longitude,
+        radius_meters,
+    )
+
+
 
 
 def classify_hotspot_cell(input_params: dict) -> dict:
