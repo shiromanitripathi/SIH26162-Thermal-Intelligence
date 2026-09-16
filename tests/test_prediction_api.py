@@ -1,8 +1,11 @@
 from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.routers import prediction as prediction_router
+from src.features.feature_config import ALL_MODEL_FEATURES
 from src.models.predictor import predictor
 
 
@@ -10,7 +13,7 @@ client = TestClient(app)
 
 
 def test_predict_mock_success():
-    with patch.object(predictor, 'model', None):
+    with patch.object(predictor, "model", None):
         response = client.post(
             "/api/predict",
             json={
@@ -30,12 +33,33 @@ def test_predict_mock_success():
         assert isinstance(data["evidence"], list)
 
 
+@pytest.mark.skipif(
+    not predictor.is_model_loaded,
+    reason="Final model artifact is not available locally",
+)
 def test_predict_real_model_success():
+    features = {
+        name: 0.0
+        for name in ALL_MODEL_FEATURES
+    }
+
+    features.update(
+        {
+            "observation_count": 20,
+            "active_days": 15,
+            "persistence_days": 100,
+            "night_ratio": 0.5,
+            "mean_frp": 10.0,
+            "max_frp": 20.0,
+            "osm_min_distance_m": 2000.0,
+        }
+    )
+
     response = client.post(
         "/api/predict",
         json={
             "event_id": "EVT_TEST_002",
-            "features": {"active_days": 15, "persistence_days": 100},
+            "features": features,
         },
     )
 
