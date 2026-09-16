@@ -1,14 +1,19 @@
-import { useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
 import { NavLink } from "react-router-dom";
 import {
-    ChevronDown,
-    Satellite,
     Activity,
-    Map,
-    BrainCircuit,
     BarChart3,
+    BrainCircuit,
+    ChevronDown,
     FileText,
+    Map,
+    Satellite,
 } from "lucide-react";
+
+import { getHealth } from "../services/api";
 
 const menus = [
     {
@@ -32,7 +37,6 @@ const menus = [
             },
         ],
     },
-
     {
         label: "EXPLORE",
         icon: Map,
@@ -59,7 +63,6 @@ const menus = [
             },
         ],
     },
-
     {
         label: "ANALYSIS",
         icon: BrainCircuit,
@@ -70,19 +73,9 @@ const menus = [
                 hash: "#ai-assessment",
             },
             {
-                label: "Thermal History",
-                path: "/analysis",
-                hash: "#thermal-history",
-            },
-            {
                 label: "Persistence",
                 path: "/analysis",
                 hash: "#persistence",
-            },
-            {
-                label: "Recurrence",
-                path: "/analysis",
-                hash: "#recurrence",
             },
             {
                 label: "Context Intelligence",
@@ -91,7 +84,6 @@ const menus = [
             },
         ],
     },
-
     {
         label: "INTELLIGENCE",
         icon: BarChart3,
@@ -113,7 +105,6 @@ const menus = [
             },
         ],
     },
-
     {
         label: "REPORTS",
         icon: FileText,
@@ -122,11 +113,6 @@ const menus = [
                 label: "Investigation Report",
                 path: "/reports",
                 hash: "#investigation-report",
-            },
-            {
-                label: "Saved Investigations",
-                path: "/reports",
-                hash: "#saved-investigations",
             },
             {
                 label: "Export / Print",
@@ -138,30 +124,53 @@ const menus = [
 ];
 
 function Navbar() {
-    const [openMenu, setOpenMenu] = useState(null);
+    const [openMenu, setOpenMenu] =
+        useState(null);
+    const [apiStatus, setApiStatus] =
+        useState("checking");
+
+    useEffect(() => {
+        let cancelled = false;
+
+        getHealth()
+            .then(() => {
+                if (!cancelled) {
+                    setApiStatus("online");
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setApiStatus("offline");
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     return (
         <header className="navbar">
-
-            {/* BRAND */}
             <div className="brand">
                 <div className="brand-icon">
                     <Satellite size={21} />
                 </div>
 
                 <div>
-                    <div className="brand-name">FIRMS</div>
+                    <div className="brand-name">
+                        FIRMS
+                    </div>
                     <div className="brand-subtitle">
                         THERMAL INTELLIGENCE
                     </div>
                 </div>
             </div>
 
-            {/* NAVIGATION */}
             <nav className="nav-menu">
                 {menus.map((menu, index) => {
                     const Icon = menu.icon;
-                    const isOpen = openMenu === index;
+                    const isOpen =
+                        openMenu === index;
 
                     return (
                         <div
@@ -169,18 +178,23 @@ function Navbar() {
                             key={menu.label}
                         >
                             <button
-                                className={`nav-button ${isOpen ? "active" : ""
-                                    }`}
+                                className={`nav-button ${
+                                    isOpen
+                                        ? "active"
+                                        : ""
+                                }`}
                                 onClick={() =>
                                     setOpenMenu(
-                                        isOpen ? null : index
+                                        isOpen
+                                            ? null
+                                            : index
                                     )
                                 }
                             >
                                 <Icon size={15} />
-
-                                <span>{menu.label}</span>
-
+                                <span>
+                                    {menu.label}
+                                </span>
                                 <ChevronDown
                                     size={14}
                                     className={
@@ -191,19 +205,28 @@ function Navbar() {
                                 />
                             </button>
 
-                            {/* DROPDOWN */}
                             {isOpen && (
                                 <div className="dropdown-panel">
-                                    {menu.items.map((item) => (
-                                        <NavLink
-                                            key={item.label}
-                                            to={`${item.path}${item.hash || ""}`}
-                                            className="dropdown-item"
-                                            onClick={() => setOpenMenu(null)}
-                                        >
-                                            {item.label}
-                                        </NavLink>
-                                    ))}
+                                    {menu.items.map(
+                                        (item) => (
+                                            <NavLink
+                                                key={
+                                                    item.label
+                                                }
+                                                to={`${item.path}${item.hash || ""}`}
+                                                className="dropdown-item"
+                                                onClick={() =>
+                                                    setOpenMenu(
+                                                        null
+                                                    )
+                                                }
+                                            >
+                                                {
+                                                    item.label
+                                                }
+                                            </NavLink>
+                                        )
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -211,17 +234,21 @@ function Navbar() {
                 })}
             </nav>
 
-            {/* SYSTEM STATUS */}
             <div className="system-status">
                 <span className="status-dot" />
 
-                <span>SYSTEM ONLINE</span>
+                <span>
+                    {apiStatus === "online"
+                        ? "API ONLINE"
+                        : apiStatus === "offline"
+                            ? "API OFFLINE"
+                            : "CHECKING API"}
+                </span>
 
                 <span className="project-code">
                     SIH26162
                 </span>
             </div>
-
         </header>
     );
 }

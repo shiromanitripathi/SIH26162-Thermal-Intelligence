@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     Activity,
     BarChart3,
@@ -10,37 +10,42 @@ import {
     TrendingUp,
 } from "lucide-react";
 
-const demoRegions = [
-    {
-        id: "REGION-DEMO-001",
-        name: "Northern India",
-    },
-    {
-        id: "REGION-DEMO-002",
-        name: "Western India",
-    },
-    {
-        id: "REGION-DEMO-003",
-        name: "Eastern India",
-    },
-    {
-        id: "REGION-DEMO-004",
-        name: "Southern India",
-    },
-];
+import { getHotspotStats } from "../services/api";
+
+function formatInteger(value) {
+    return Number.isFinite(Number(value))
+        ? Number(value).toLocaleString()
+        : "â€”";
+}
 
 function DistrictIntelligence() {
-    const [selectedRegion, setSelectedRegion] = useState(
-        demoRegions[0]
-    );
+    const [stats, setStats] = useState(null);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        let cancelled = false;
+
+        getHotspotStats()
+            .then((result) => {
+                if (!cancelled) {
+                    setStats(result);
+                    setError("");
+                }
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    setError(err.message);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     return (
         <div className="intelligence-page">
-
-            {/* HEADER */}
-
             <section className="intelligence-header">
-
                 <div className="intelligence-eyebrow">
                     INTELLIGENCE / REGIONAL
                 </div>
@@ -48,374 +53,263 @@ function DistrictIntelligence() {
                 <h1>Regional Intelligence</h1>
 
                 <p>
-                    Compare thermal activity, temporal behavior and
-                    investigation signals across geographic regions.
+                    National event summaries are available
+                    now. District-level attribution requires a
+                    validated administrative-boundary join and
+                    is not fabricated by the frontend.
                 </p>
 
-                <div className="intelligence-notice">
-                    REGIONAL DATA AWAITING BACKEND
-                </div>
-
+                {error && (
+                    <div className="intelligence-notice">
+                        BACKEND DATA UNAVAILABLE: {error}
+                    </div>
+                )}
             </section>
 
-            {/* DEVELOPMENT NOTICE */}
-
             <div className="intelligence-development">
-
                 <Radio size={18} />
 
                 <div>
-                    <strong>DEVELOPMENT MODE</strong>
+                    <strong>
+                        DISTRICT BREAKDOWN NOT YET AVAILABLE
+                    </strong>
 
                     <span>
-                        Regional and district statistics will appear only
-                        when validated backend data is available.
+                        The current API does not expose
+                        validated district or state
+                        attribution. National aggregates below
+                        are real backend values.
                     </span>
                 </div>
-
             </div>
 
-            {/* KPI GRID */}
-
             <section className="regional-kpi-grid">
-
                 <div className="regional-kpi-card">
-
                     <div className="regional-kpi-icon">
                         <Activity size={19} />
                     </div>
 
-                    <span>THERMAL EVENTS</span>
+                    <span>THERMAL EVENT CELLS</span>
 
-                    <strong>—</strong>
+                    <strong>
+                        {formatInteger(
+                            stats?.total_spatial_cells
+                        )}
+                    </strong>
 
                     <small>
-                        Backend data required
+                        National stored cells
                     </small>
-
                 </div>
 
                 <div className="regional-kpi-card">
-
                     <div className="regional-kpi-icon">
                         <Flame size={19} />
                     </div>
 
-                    <span>PERSISTENT SOURCES</span>
+                    <span>
+                        PERSISTENT CANDIDATES
+                    </span>
 
-                    <strong>—</strong>
+                    <strong>
+                        {formatInteger(
+                            stats?.persistent_candidate_cells
+                        )}
+                    </strong>
 
                     <small>
-                        Backend data required
+                        Heuristic candidate label
                     </small>
-
                 </div>
 
                 <div className="regional-kpi-card">
-
                     <div className="regional-kpi-icon">
                         <TrendingUp size={19} />
                     </div>
 
-                    <span>RECURRENT SOURCES</span>
+                    <span>MAX ACTIVE DAYS</span>
 
-                    <strong>—</strong>
+                    <strong>
+                        {formatInteger(
+                            stats?.max_active_days
+                        )}
+                    </strong>
 
-                    <small>
-                        Backend data required
-                    </small>
-
+                    <small>National maximum</small>
                 </div>
 
                 <div className="regional-kpi-card">
-
                     <div className="regional-kpi-icon">
                         <ShieldAlert size={19} />
                     </div>
 
-                    <span>PRIORITY SOURCES</span>
+                    <span>OSM CONTEXT CELLS</span>
 
-                    <strong>—</strong>
+                    <strong>
+                        {formatInteger(
+                            stats?.osm_context_cells
+                        )}
+                    </strong>
 
                     <small>
-                        Backend data required
+                        Explicit context coverage
                     </small>
-
                 </div>
-
             </section>
-
-            {/* MAIN GRID */}
 
             <section
                 id="district-intelligence"
                 className="intelligence-main-grid nav-section-target"
             >
-
-                {/* REGION SELECTOR */}
-
                 <div className="region-selector-panel">
-
                     <div className="intelligence-panel-header">
-
                         <div>
                             <span className="intelligence-kicker">
-                                REGIONAL VIEW
+                                CURRENT SCOPE
                             </span>
-
-                            <h2>Geographic Regions</h2>
+                            <h2>India-wide dataset</h2>
                         </div>
 
                         <MapPin size={19} />
-
-                    </div>
-
-                    <div className="region-list">
-
-                        {demoRegions.map((region) => (
-
-                            <button
-                                key={region.id}
-                                className={`region-item ${selectedRegion.id === region.id
-                                    ? "active"
-                                    : ""
-                                    }`}
-                                onClick={() => setSelectedRegion(region)}
-                            >
-
-                                <div className="region-marker">
-                                    <MapPin size={16} />
-                                </div>
-
-                                <div>
-                                    <strong>{region.name}</strong>
-
-                                    <span>
-                                        Development region
-                                    </span>
-                                </div>
-
-                            </button>
-
-                        ))}
-
-                    </div>
-
-                </div>
-
-                {/* SELECTED REGION */}
-
-                <div className="selected-region-panel">
-
-                    <div className="intelligence-panel-header">
-
-                        <div>
-                            <span className="intelligence-kicker">
-                                SELECTED REGION
-                            </span>
-
-                            <h2>{selectedRegion.name}</h2>
-                        </div>
-
-                        <span className="region-development-badge">
-                            DEVELOPMENT MOCK
-                        </span>
-
-                    </div>
-
-                    <div className="region-overview-grid">
-
-                        <div>
-                            <span>OBSERVATIONS</span>
-                            <strong>—</strong>
-                            <small>Not available yet</small>
-                        </div>
-
-                        <div>
-                            <span>EVENTS</span>
-                            <strong>—</strong>
-                            <small>Not available yet</small>
-                        </div>
-
-                        <div>
-                            <span>PERSISTENT SOURCES</span>
-                            <strong>—</strong>
-                            <small>Not available yet</small>
-                        </div>
-
-                        <div>
-                            <span>RECURRENT SOURCES</span>
-                            <strong>—</strong>
-                            <small>Not available yet</small>
-                        </div>
-
                     </div>
 
                     <div className="region-data-placeholder">
-
                         <BarChart3 size={25} />
 
                         <strong>
-                            Regional analytics not available yet
+                            Administrative boundary
+                            attribution required
                         </strong>
 
                         <span>
-                            Validated FIRMS observations and backend
-                            aggregation are required before regional
-                            statistics can be displayed.
+                            District rankings will be enabled
+                            only after event coordinates are
+                            joined to a validated boundary
+                            dataset.
                         </span>
-
                     </div>
-
                 </div>
 
-            </section>
+                <div className="selected-region-panel">
+                    <div className="intelligence-panel-header">
+                        <div>
+                            <span className="intelligence-kicker">
+                                NATIONAL SUMMARY
+                            </span>
+                            <h2>
+                                Backend event statistics
+                            </h2>
+                        </div>
+                    </div>
 
-            {/* TEMPORAL TRENDS */}
+                    <div className="region-overview-grid">
+                        <div>
+                            <span>OBSERVATIONS</span>
+                            <strong>
+                                {formatInteger(
+                                    stats?.total_raw_observations
+                                )}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>EVENT CELLS</span>
+                            <strong>
+                                {formatInteger(
+                                    stats?.total_spatial_cells
+                                )}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>
+                                PERSISTENT CANDIDATES
+                            </span>
+                            <strong>
+                                {formatInteger(
+                                    stats?.persistent_candidate_cells
+                                )}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>
+                                MAX PERSISTENCE DAYS
+                            </span>
+                            <strong>
+                                {formatInteger(
+                                    stats?.max_persistence_days
+                                )}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <section
                 id="regional-trends"
                 className="regional-trends-section nav-section-target"
             >
-
                 <div className="intelligence-panel-header">
-
                     <div>
                         <span className="intelligence-kicker">
                             TEMPORAL INTELLIGENCE
                         </span>
-
-                        <h2>Regional Thermal Trends</h2>
+                        <h2>
+                            Regional Thermal Trends
+                        </h2>
                     </div>
 
                     <Clock3 size={19} />
-
                 </div>
 
                 <div className="trend-placeholder">
-
                     <div className="trend-placeholder-icon">
                         <TrendingUp size={25} />
                     </div>
 
                     <div>
                         <strong>
-                            Monthly and temporal trends not available yet
+                            Regional time-series endpoint
+                            not available
                         </strong>
 
                         <p>
-                            This visualization will use validated observation
-                            history to show changes in thermal activity over
-                            time.
+                            No trend values are synthesized
+                            by the frontend.
                         </p>
                     </div>
-
                 </div>
-
             </section>
-
-            {/* DISTRICT TABLE */}
-
-            <section className="district-table-section">
-
-                <div className="intelligence-panel-header">
-
-                    <div>
-                        <span className="intelligence-kicker">
-                            DISTRICT INTELLIGENCE
-                        </span>
-
-                        <h2>District Overview</h2>
-                    </div>
-
-                    <span className="table-status">
-                        BACKEND REQUIRED
-                    </span>
-
-                </div>
-
-                <div className="district-table-wrapper">
-
-                    <table className="district-table">
-
-                        <thead>
-                            <tr>
-                                <th>DISTRICT / REGION</th>
-                                <th>OBSERVATIONS</th>
-                                <th>EVENTS</th>
-                                <th>PERSISTENCE</th>
-                                <th>RECURRENCE</th>
-                                <th>PRIORITY</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            <tr>
-                                <td>
-                                    <div className="district-name">
-                                        <MapPin size={15} />
-                                        Data pending
-                                    </div>
-                                </td>
-
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>—</td>
-                                <td>
-                                    <span className="not-available">
-                                        Not available
-                                    </span>
-                                </td>
-                            </tr>
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            </section>
-
-            {/* PRIORITY SOURCES */}
 
             <section
                 id="priority-sources"
                 className="priority-intelligence-section nav-section-target"
             >
-
                 <div className="intelligence-panel-header">
-
                     <div>
                         <span className="intelligence-kicker">
                             INVESTIGATION SUPPORT
                         </span>
-
                         <h2>Priority Sources</h2>
                     </div>
 
                     <ShieldAlert size={19} />
-
                 </div>
 
                 <div className="priority-placeholder">
-
                     <ShieldAlert size={25} />
 
                     <strong>
-                        Priority ranking not available yet
+                        No backend priority score is defined
                     </strong>
 
                     <span>
-                        Investigation priority will be shown only when
-                        supported by backend-provided assessment signals.
+                        The frontend does not invent
+                        investigation rankings.
                     </span>
-
                 </div>
-
             </section>
-
         </div>
     );
 }
