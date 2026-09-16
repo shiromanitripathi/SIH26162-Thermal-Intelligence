@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from sqlalchemy import text
 
@@ -13,6 +13,8 @@ _BASE_COLUMNS = """
     longitude,
     observation_count,
     active_days,
+    first_seen,
+    last_seen,
     persistence_days,
     recurrence_ratio,
     obs_per_active_day,
@@ -22,10 +24,12 @@ _BASE_COLUMNS = """
     mean_frp,
     max_frp,
     std_frp,
+    mean_brightness,
     mean_brightness AS brightness,
     max_brightness,
     mean_bright_t31,
     max_bright_t31,
+    mean_confidence_score,
     mean_confidence_score AS confidence,
     type_2_count,
     type_2_ratio,

@@ -2,17 +2,42 @@ const API_BASE =
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:8000";
 
-export async function getHealth() {
-    const response = await fetch(`${API_BASE}/api/health`);
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers: {
+            ...(options.body
+                ? { "Content-Type": "application/json" }
+                : {}),
+            ...(options.headers || {}),
+        },
+    });
 
-    if (!response.ok) {
-        throw new Error("Backend health check failed");
+    let data = null;
+
+    try {
+        data = await response.json();
+    } catch {
+        data = null;
     }
 
-    return response.json();
+    if (!response.ok) {
+        const detail =
+            typeof data?.detail === "string"
+                ? data.detail
+                : `Request failed with status ${response.status}`;
+
+        const error = new Error(detail);
+        error.status = response.status;
+        error.data = data;
+
+        throw error;
+    }
+
+    return data;
 }
 
-export async function getHotspots(params = {}) {
+function buildQuery(params = {}) {
     const query = new URLSearchParams();
 
     Object.entries(params).forEach(([key, value]) => {
@@ -21,51 +46,81 @@ export async function getHotspots(params = {}) {
             value !== null &&
             value !== ""
         ) {
-            query.append(key, value);
+            query.set(key, String(value));
         }
     });
 
-    const queryString = query.toString();
+    const value = query.toString();
 
-    const response = await fetch(
-        `${API_BASE}/api/hotspots${queryString ? `?${queryString}` : ""
-        }`
-    );
-
-    if (!response.ok) {
-        throw new Error("Unable to retrieve hotspots");
-    }
-
-    return response.json();
+    return value ? `?${value}` : "";
 }
 
-export async function getHotspot(id) {
-    const response = await fetch(
-        `${API_BASE}/api/hotspots/${id}`
-    );
-
-    if (!response.ok) {
-        throw new Error("Unable to retrieve hotspot");
+function encodeId(id) {
+    if (
+        id === undefined ||
+        id === null ||
+        String(id).trim() === ""
+    ) {
+        throw new Error("A hotspot ID is required");
     }
 
-    return response.json();
+    return encodeURIComponent(String(id));
 }
 
-export async function predictHotspot(payload) {
-    const response = await fetch(
-        `${API_BASE}/api/predict`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-        }
+export function getHealth() {
+    return apiRequest("/api/health");
+}
+
+export function getHotspots(params = {}) {
+    return apiRequest(
+        `/api/hotspots${buildQuery(params)}`
     );
-
-    if (!response.ok) {
-        throw new Error("AI prediction request failed");
-    }
-
-    return response.json();
 }
+
+export function getHotspot(id) {
+    return apiRequest(
+        `/api/hotspots/${encodeId(id)}`
+    );
+}
+
+export function getHotspotStats() {
+    return apiRequest("/api/hotspots/stats");
+}
+
+export function getNearbyHotspots({
+    latitude,
+    longitude,
+    radius_meters = 2000,
+}) {
+    return apiRequest(
+        `/api/hotspots/nearby${buildQuery({
+            latitude,
+            longitude,
+            radius_meters,
+        })}`
+    );
+}
+
+export function getHotspotClassification(id) {
+    return apiRequest(
+        `/api/hotspots/${encodeId(id)}/classify`
+    );
+}
+
+export function classifyHotspot(payload) {
+    return apiRequest("/api/hotspots/classify", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+// Explicit/manual model-input endpoint.
+// Normal hotspot classification should use getHotspotClassification(id).
+export function predictHotspot(payload) {
+    return apiRequest("/api/predict", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export { API_BASE };
