@@ -38,7 +38,7 @@ def audit_target_relationships(df: pd.DataFrame) -> dict:
     the current target is heuristic/weakly supervised.
     """
 
-    diagnostic_columns = [
+    direct_label_dependencies = [
         "active_days",
         "persistence_days",
         "night_ratio",
@@ -46,9 +46,15 @@ def audit_target_relationships(df: pd.DataFrame) -> dict:
         "mean_frp",
     ]
 
+    derived_label_dependencies = [
+        "recurrence_ratio",
+        "type_2_ratio",
+        "obs_per_active_day",
+    ]
+
     correlations = {}
 
-    for column in diagnostic_columns:
+    for column in direct_label_dependencies:
         if column in df.columns:
             correlations[column] = float(
                 df[column].corr(df[TARGET])
@@ -56,11 +62,22 @@ def audit_target_relationships(df: pd.DataFrame) -> dict:
 
     return {
         "target": TARGET,
+        "direct_label_dependencies": [
+            column for column in direct_label_dependencies
+            if column in df.columns
+        ],
+        "derived_label_dependencies": [
+            column for column in derived_label_dependencies
+            if column in df.columns
+        ],
         "diagnostic_correlations": correlations,
         "warning": (
             "The target is heuristic/weakly supervised. "
-            "High relationships with label-generating FIRMS features "
-            "must not be interpreted as independent predictive evidence."
+            "The model can learn patterns used to generate the target, "
+            "including direct and derived label-related features. "
+            "Therefore, benchmark metrics measure agreement with the "
+            "heuristic labels and must not be interpreted as independent "
+            "real-world classification accuracy."
         ),
     }
 
