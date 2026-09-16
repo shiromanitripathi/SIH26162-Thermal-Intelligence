@@ -1,0 +1,4 @@
+grid_id,lat_grid,lon_grid,osm_feature_count,osm_industrial_count,osm_power_count,osm_manmade_count,osm_min_distance_m
+23.11_72.77,23.11,72.77,69,1,68,0,30.209468431166528
+23.17_72.83,23.17,72.83,76,3,71,2,913.5169439774211
+23.18_72.88,23.18,72.88,86,0,86,0,342.9122896514668

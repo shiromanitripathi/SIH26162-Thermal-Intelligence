@@ -1,37 +1,15 @@
-@import "leaflet/dist/leaflet.css";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap");
-
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
-  min-height: 100%;
-  width: 100%;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 body {
-  font-family: "Inter", sans-serif;
-  background: #05070d;
-  color: #f4f7fb;
-  overflow-x: hidden;
+  margin: 0;
+  background-color: #020617;
+  color: #f8fafc;
 }
 
-button,
-input,
-select {
-  font-family: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
 }

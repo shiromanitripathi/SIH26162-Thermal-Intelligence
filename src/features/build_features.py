@@ -107,14 +107,51 @@ def aggregate_firms_spatial(df: pd.DataFrame, grid_size: float = GRID_SIZE) -> p
         spatial_df["type_2_count"] / spatial_df["observation_count"]
     )
     
-    # Target Label Y (Zero OSM Leakage)
-    spatial_df["target_persistent_source"] = np.where(
-        (spatial_df["type_2_count"] > 0) |
+    # Weak/heuristic multiclass target.
+    # These labels are derived entirely from FIRMS behavioral features and are
+    # NOT independently verified ground truth. They are intended for ML
+    # benchmarking and pipeline development only.
+    #
+    # Historical mapping:
+    # 0 = vegetation/agricultural fire
+    # 1 = industrial fire candidate
+    # 2 = persistent thermal source
+    # 3 = other/ephemeral hotspot
+    is_persistent = (
+        (spatial_df["active_days"] >= 10) &
+        (spatial_df["persistence_days"] >= 60) &
+        (spatial_df["night_ratio"] >= 0.20)
+    )
+
+    is_industrial = (
+        ~is_persistent &
+        (spatial_df["active_days"] >= 4) &
+        (spatial_df["night_ratio"] >= 0.25) &
         (
-            (spatial_df["active_days"] >= WEAK_LABEL_MIN_ACTIVE_DAYS) &
-            (spatial_df["persistence_days"] >= WEAK_LABEL_MIN_PERSISTENCE) &
-            (spatial_df["night_ratio"] >= WEAK_LABEL_MIN_NIGHT_RATIO)
-        ),
+            (spatial_df["type_2_count"] > 0) |
+            (spatial_df["mean_frp"] >= 4.0) |
+            (spatial_df["active_days"] >= 7)
+        )
+    )
+
+    is_vegetation = (
+        ~is_persistent & ~is_industrial &
+        (spatial_df["active_days"] <= 3) &
+        (spatial_df["persistence_days"] <= 14) &
+        (spatial_df["night_ratio"] < 0.15) &
+        (spatial_df["type_2_count"] == 0)
+    )
+
+    spatial_df["target_multiclass"] = np.select(
+        [is_vegetation, is_industrial, is_persistent],
+        [0, 1, 2],
+        default=3
+    )
+
+    # Binary persistent-source target derived consistently from the multiclass
+    # weak label. This is NOT independently verified ground truth.
+    spatial_df["target_persistent_source"] = np.where(
+        spatial_df["target_multiclass"].isin([1, 2]),
         1,
         0
     )
