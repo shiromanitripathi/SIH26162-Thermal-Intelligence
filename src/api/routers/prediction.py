@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+﻿from fastapi import APIRouter, HTTPException
 
 from src.api.schemas.prediction import (
     PredictionRequest,
@@ -22,6 +22,11 @@ def predict_event(payload: PredictionRequest) -> PredictionResponse:
                 "features": payload.features,
             }
         )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=500,

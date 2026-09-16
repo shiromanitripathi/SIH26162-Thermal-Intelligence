@@ -1,48 +1,63 @@
-# SIH26162 Prediction Contract
+﻿# SIH26162 Prediction Contract
 
-## Purpose
+## Status
 
-This document defines the temporary Day-1 contract between the FastAPI backend and the predictor layer.
+The backend supports a stable prediction API while allowing the final trained
+artifact to be installed separately.
 
-The final ML feature schema, labels, trained model, production classes, and model filename are not frozen yet.
+The current labels are heuristic/weak labels. They are not independently
+verified industrial-fire ground truth.
 
-## Request
+## Public endpoint
 
-The temporary prediction request contains:
+`POST /api/predict`
 
-- event_id: thermal event identifier
-- features: generic dictionary of input features
+Request:
 
-Example request:
+```json
+{
+  "event_id": "GRID_OR_EVENT_ID",
+  "features": {
+    "...": "exact feature values required by the installed artifact"
+  }
+}
+```
 
-{"event_id": "EVT_TEST_001", "features": {}}
+Response:
 
-The features object is intentionally generic. Final feature names must come from the validated ML pipeline.
+```json
+{
+  "classification": "MODEL_NOT_AVAILABLE or artifact class label",
+  "model_score": null,
+  "evidence": [],
+  "model_version": "mock-v0",
+  "is_mock": true
+}
+```
 
-## Response
+## Runtime rules
 
-The temporary response contains:
+1. A real artifact must contain `model` and `feature_names`.
+2. `class_mapping` and `model_version` should be stored in the artifact.
+3. Runtime feature order comes only from the artifact's `feature_names`.
+4. Missing required features produce HTTP 422 when a real model is loaded.
+5. Missing OSM context is never converted to zero automatically.
+6. If the model has no `predict_proba`, `model_score` remains `null`.
+7. `model_score` must not be described as a calibrated probability unless
+   calibration is separately validated.
+8. If no artifact is installed, the API returns `MODEL_NOT_AVAILABLE` and
+   `is_mock=true`; it does not fabricate a prediction.
+9. OSM is contextual evidence unless a specific validated artifact explicitly
+   includes OSM fields as model inputs.
+10. Reported ML metrics measure agreement with weak labels, not independently
+    validated real-world industrial-fire accuracy.
 
-- classification
-- model_score
-- evidence
-- model_version
-- is_mock
+## Final demo training script
 
-Example response:
+`scripts/train_final.py` creates:
 
-{"classification": "MODEL_NOT_AVAILABLE", "model_score": null, "evidence": ["Development placeholder only. No trained model is loaded."], "model_version": "mock-v0", "is_mock": true}
+- `models/final_multiclass_model.joblib`
+- `models/final_model_metadata.json`
 
-## Rules
-
-1. Mock predictions must never be presented as real ML results.
-2. model_score must not be described as a calibrated probability unless calibration is validated.
-3. Backend code must not invent final ML features, classes, accuracy, or model filename.
-4. The real ML model should replace the predictor implementation without requiring the API contract to be redesigned.
-5. The trained model should eventually be loaded once during application startup instead of once per request.
-
-## Current Status
-
-Day-1 predictor: temporary development mock.
-
-Real ML integration: pending validated model delivery from the ML team.
+The artifact uses the leakage-reduced FIRMS feature set documented by the ML
+validation work. OSM remains contextual evidence for this artifact.
