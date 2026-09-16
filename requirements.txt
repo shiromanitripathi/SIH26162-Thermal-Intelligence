@@ -3,7 +3,7 @@ numpy>=2.0.0
 pandas>=2.0.0
 scikit-learn>=1.4.0
 scipy>=1.11.0
-xgboost>=2.0.0
+xgboost==3.4.1
 
 # Geospatial Analysis & Satellite Processing
 geopandas>=1.0.0
