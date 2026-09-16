@@ -27,7 +27,7 @@ function eventIdentity(event) {
 
 function displayValue(value, digits = null) {
     if (value === null || value === undefined) {
-        return "â€”";
+        return "\u2014";
     }
 
     if (
@@ -399,7 +399,7 @@ function Analysis() {
                                             ? displayValue(
                                                 event.osm_industrial_count
                                             )
-                                            : "â€”"}
+                                            : "\u2014"}
                                     </strong>
                                 </div>
 
@@ -416,7 +416,7 @@ function Analysis() {
                                                 event.osm_min_distance_m,
                                                 1
                                             )} m`
-                                            : "â€”"}
+                                            : "\u2014"}
                                     </strong>
                                 </div>
                             </div>
@@ -529,7 +529,7 @@ function Analysis() {
                             "unavailable"
                                 ? "Model unavailable"
                                 : prediction?.classification ??
-                                  "â€”"}
+                                  "\u2014"}
                         </strong>
 
                         <small>
@@ -544,7 +544,7 @@ function Analysis() {
                         <strong>
                             {prediction?.model_score ==
                             null
-                                ? "â€”"
+                                ? "\u2014"
                                 : Number(
                                     prediction.model_score
                                 ).toFixed(4)}
@@ -561,7 +561,7 @@ function Analysis() {
 
                         <strong>
                             {prediction?.model_version ??
-                                "â€”"}
+                                "\u2014"}
                         </strong>
 
                         <small>
@@ -580,7 +580,7 @@ function Analysis() {
                     {prediction?.evidence?.length ? (
                         <p>
                             {prediction.evidence.join(
-                                " â€¢ "
+                                " \u2022 "
                             )}
                         </p>
                     ) : (
