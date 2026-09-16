@@ -5,6 +5,11 @@ from typing import List, Dict, Any, Optional
 
 from src.features.feature_config import PROJECT_ROOT, MERGED_DATASET_PATH
 from src.models.predictor import get_predictor
+from src.api.repositories.hotspot_repository import (
+    get_all_hotspots,
+    get_hotspot_by_id,
+    get_hotspots_nearby,
+)
 
 _spatial_cache = None
 

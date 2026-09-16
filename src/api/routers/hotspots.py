@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional, Dict, Any
 
-from src.api.schemas.hotspot import Hotspot, ClassificationRequest, ClassificationResponse
 from src.api.services.hotspot_service import (
     get_hotspots,
     get_hotspot,
@@ -35,11 +34,13 @@ def hotspot_summary_stats():
 @router.get("/{hotspot_id}")
 def hotspot_detail(hotspot_id: str):
     hotspot = get_hotspot(hotspot_id)
+
     if hotspot is None:
         raise HTTPException(
             status_code=404,
             detail="Hotspot grid cell not found",
         )
+
     return hotspot
 
 
@@ -53,9 +54,11 @@ def classify_thermal_source(request: ClassificationRequest):
 def classify_by_hotspot_id(hotspot_id: str):
     """Classify an existing hotspot ID using ML model."""
     hotspot = get_hotspot(hotspot_id)
+
     if hotspot is None:
         raise HTTPException(
             status_code=404,
             detail="Hotspot grid cell not found",
         )
+
     return classify_hotspot_cell(hotspot)
