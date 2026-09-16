@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
     Activity,
     ArrowUpRight,
@@ -11,50 +12,82 @@ import {
 
 import IndiaMap from "../components/IndiaMap";
 import StatCard from "../components/StatCard";
+import {
+    getHealth,
+    getHotspots,
+    getHotspotStats,
+} from "../services/api";
 
-const demoHotspots = [
-    {
-        id: "DEMO-001",
-        latitude: 28.6139,
-        longitude: 77.209,
-        location: "Northern India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-002",
-        latitude: 19.076,
-        longitude: 72.8777,
-        location: "Western India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-003",
-        latitude: 22.5726,
-        longitude: 88.3639,
-        location: "Eastern India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-004",
-        latitude: 13.0827,
-        longitude: 80.2707,
-        location: "Southern India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-005",
-        latitude: 30.901,
-        longitude: 75.8573,
-        location: "North-West India",
-        isMock: true,
-    },
-];
+function hotspotIdentity(hotspot) {
+    return (
+        hotspot?.event_id ||
+        hotspot?.grid_id ||
+        String(hotspot?.id ?? "Unknown event")
+    );
+}
+
+function formatInteger(value) {
+    return Number.isFinite(Number(value))
+        ? Number(value).toLocaleString()
+        : "â€”";
+}
 
 function Overview() {
+    const [health, setHealth] = useState("checking");
+    const [stats, setStats] = useState(null);
+    const [hotspots, setHotspots] = useState([]);
+    const [dataError, setDataError] = useState("");
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadOverview() {
+            const healthPromise = getHealth()
+                .then(() => {
+                    if (!cancelled) {
+                        setHealth("online");
+                    }
+                })
+                .catch(() => {
+                    if (!cancelled) {
+                        setHealth("offline");
+                    }
+                });
+
+            const dataPromise = Promise.all([
+                getHotspotStats(),
+                getHotspots({ limit: 5 }),
+            ])
+                .then(([statsResult, hotspotResult]) => {
+                    if (cancelled) {
+                        return;
+                    }
+
+                    setStats(statsResult);
+                    setHotspots(hotspotResult);
+                    setDataError("");
+                })
+                .catch((error) => {
+                    if (!cancelled) {
+                        setDataError(error.message);
+                    }
+                });
+
+            await Promise.allSettled([
+                healthPromise,
+                dataPromise,
+            ]);
+        }
+
+        loadOverview();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     return (
         <div className="overview-page">
-
-            {/* HERO */}
             <section className="overview-hero">
                 <div className="hero-copy">
                     <div className="eyebrow">
@@ -68,19 +101,26 @@ function Overview() {
                     </h1>
 
                     <p>
-                        Transforming satellite-detected thermal anomalies into
-                        explainable intelligence through temporal behavior,
-                        geospatial context and AI-assisted classification.
+                        Transforming satellite-detected thermal
+                        anomalies into explainable intelligence
+                        through temporal behavior, geospatial context
+                        and AI-assisted classification.
                     </p>
 
                     <div className="hero-actions">
-                        <a href="/map" className="primary-action">
+                        <a
+                            href="/map"
+                            className="primary-action"
+                        >
                             <MapPin size={17} />
                             Explore Thermal Map
                             <ArrowUpRight size={16} />
                         </a>
 
-                        <a href="/analysis" className="secondary-action">
+                        <a
+                            href="/analysis"
+                            className="secondary-action"
+                        >
                             <BrainCircuit size={17} />
                             AI Assessment
                         </a>
@@ -106,20 +146,17 @@ function Overview() {
                 </div>
             </section>
 
-            {/* DEVELOPMENT NOTICE */}
-            <div className="development-banner">
-                <div>
-                    <ShieldAlert size={17} />
-                    <strong>DEVELOPMENT MODE</strong>
+            {dataError && (
+                <div className="development-banner">
+                    <div>
+                        <ShieldAlert size={17} />
+                        <strong>DATA UNAVAILABLE</strong>
+                    </div>
+
+                    <span>{dataError}</span>
                 </div>
+            )}
 
-                <span>
-                    Map observations shown on this page are UI demonstration data.
-                    Real FIRMS observations will replace them during backend integration.
-                </span>
-            </div>
-
-            {/* KPI SECTION */}
             <section
                 id="command-center"
                 className="dashboard-section nav-section-target"
@@ -127,85 +164,114 @@ function Overview() {
                 <div className="section-heading">
                     <div>
                         <span className="section-index">01</span>
+
                         <div>
-                            <span className="section-label">COMMAND CENTER</span>
-                            <h2>Thermal activity overview</h2>
+                            <span className="section-label">
+                                COMMAND CENTER
+                            </span>
+                            <h2>
+                                Thermal activity overview
+                            </h2>
                         </div>
                     </div>
 
                     <span className="section-status">
                         <span className="status-dot" />
-                        DATA PIPELINE READY
+                        {health === "online"
+                            ? "API ONLINE"
+                            : health === "offline"
+                                ? "API OFFLINE"
+                                : "CHECKING API"}
                     </span>
                 </div>
 
                 <div className="stats-grid">
                     <StatCard
                         label="Thermal Observations"
-                        value="—"
-                        description="Awaiting validated FIRMS data"
+                        value={formatInteger(
+                            stats?.total_raw_observations
+                        )}
+                        description="Aggregated FIRMS observations"
                         type="thermal"
                     />
 
                     <StatCard
-                        label="Persistent Sources"
-                        value="—"
-                        description="Historical analysis unavailable"
+                        label="Persistent Candidates"
+                        value={formatInteger(
+                            stats?.persistent_candidate_cells
+                        )}
+                        description="Heuristic candidate cells"
                         type="activity"
                     />
 
                     <StatCard
-                        label="Industrial Candidates"
-                        value="—"
-                        description="AI classification pending"
+                        label="OSM Context Cells"
+                        value={formatInteger(
+                            stats?.osm_context_cells
+                        )}
+                        description="Cells with available OSM context"
                         type="satellite"
                     />
 
                     <StatCard
-                        label="System Status"
-                        value="ONLINE"
-                        description="Frontend intelligence console"
+                        label="API Status"
+                        value={
+                            health === "online"
+                                ? "ONLINE"
+                                : health === "offline"
+                                    ? "OFFLINE"
+                                    : "CHECKING"
+                        }
+                        description="FastAPI health endpoint"
                         type="system"
                     />
                 </div>
             </section>
 
-            {/* MAP */}
             <section className="dashboard-section map-section">
                 <div className="section-heading">
                     <div>
                         <span className="section-index">02</span>
+
                         <div>
-                            <span className="section-label">GEOSPATIAL LAYER</span>
+                            <span className="section-label">
+                                GEOSPATIAL LAYER
+                            </span>
                             <h2>India thermal activity</h2>
                         </div>
                     </div>
 
-                    <a href="/map" className="section-link">
+                    <a
+                        href="/map"
+                        className="section-link"
+                    >
                         Open full map
                         <ArrowUpRight size={15} />
                     </a>
                 </div>
 
                 <div className="map-dashboard-card">
-                    <IndiaMap hotspots={demoHotspots} />
+                    <IndiaMap hotspots={hotspots} />
                 </div>
             </section>
 
-            {/* INTELLIGENCE GRID */}
             <section className="dashboard-section">
                 <div className="section-heading">
                     <div>
                         <span className="section-index">03</span>
+
                         <div>
-                            <span className="section-label">THERMAL INTELLIGENCE</span>
-                            <h2>From detection to understanding</h2>
+                            <span className="section-label">
+                                THERMAL INTELLIGENCE
+                            </span>
+                            <h2>
+                                From detection to understanding
+                            </h2>
                         </div>
                     </div>
                 </div>
 
                 <div className="intelligence-grid">
-
                     <div className="intelligence-card large">
                         <div className="card-icon">
                             <BrainCircuit size={21} />
@@ -213,29 +279,31 @@ function Overview() {
 
                         <div className="card-topline">
                             <span>AI CLASSIFICATION</span>
-                            <span className="pending-badge">PENDING</span>
+                            <span className="pending-badge">
+                                ARTIFACT-DEPENDENT
+                            </span>
                         </div>
 
                         <h3>
-                            Explain what the thermal anomaly represents.
+                            Classify candidate thermal behavior
+                            without inventing missing evidence.
                         </h3>
 
                         <p>
-                            The AI layer will combine thermal characteristics,
-                            temporal persistence, spatial behavior and geographic
-                            context before producing an evidence-based assessment.
+                            The backend retrieves authoritative
+                            event features and returns either a real
+                            model assessment or an explicit
+                            model-unavailable state.
                         </p>
 
                         <div className="intelligence-flow">
                             <span>THERMAL</span>
-                            <i>→</i>
+                            <i>â†’</i>
                             <span>TEMPORAL</span>
-                            <i>→</i>
-                            <span>SPATIAL</span>
-                            <i>→</i>
+                            <i>â†’</i>
                             <span>CONTEXT</span>
-                            <i>→</i>
-                            <strong>AI</strong>
+                            <i>â†’</i>
+                            <strong>MODEL</strong>
                         </div>
                     </div>
 
@@ -244,13 +312,19 @@ function Overview() {
                             <Flame size={21} />
                         </div>
 
-                        <span className="card-label">THERMAL BEHAVIOR</span>
+                        <span className="card-label">
+                            MAX ACTIVE DAYS
+                        </span>
 
-                        <div className="big-placeholder">—</div>
+                        <div className="big-placeholder">
+                            {formatInteger(
+                                stats?.max_active_days
+                            )}
+                        </div>
 
                         <p>
-                            Persistence and thermal history will appear when
-                            validated historical observations are available.
+                            Maximum observed active-day count
+                            among stored thermal-event cells.
                         </p>
                     </div>
 
@@ -259,19 +333,24 @@ function Overview() {
                             <TrendingUp size={21} />
                         </div>
 
-                        <span className="card-label">RECURRENCE</span>
+                        <span className="card-label">
+                            MAX PERSISTENCE DAYS
+                        </span>
 
-                        <div className="big-placeholder">—</div>
+                        <div className="big-placeholder">
+                            {formatInteger(
+                                stats?.max_persistence_days
+                            )}
+                        </div>
 
                         <p>
-                            Repeated detections will be analyzed to identify
-                            persistent or recurring thermal behavior.
+                            Maximum stored persistence duration
+                            across event cells.
                         </p>
                     </div>
                 </div>
             </section>
 
-            {/* ACTIVITY */}
             <section
                 id="live-activity"
                 className="dashboard-section nav-section-target"
@@ -279,106 +358,94 @@ function Overview() {
                 <div className="section-heading">
                     <div>
                         <span className="section-index">04</span>
+
                         <div>
-                            <span className="section-label">EVENT MONITOR</span>
-                            <h2>Recent thermal observations</h2>
+                            <span className="section-label">
+                                EVENT MONITOR
+                            </span>
+                            <h2>
+                                Priority thermal-event cells
+                            </h2>
                         </div>
                     </div>
 
-                    <a href="/events" className="section-link">
+                    <a
+                        href="/events"
+                        className="section-link"
+                    >
                         Event explorer
                         <ArrowUpRight size={15} />
                     </a>
                 </div>
 
                 <div className="activity-card">
-
-                    {demoHotspots.map((hotspot, index) => (
-                        <div className="activity-row" key={hotspot.id}>
-
-                            <div className="activity-number">
-                                0{index + 1}
-                            </div>
-
-                            <div className="activity-main">
-                                <div className="activity-title">
-                                    <span className="thermal-pulse" />
-                                    {hotspot.id}
+                    {hotspots.length === 0 ? (
+                        <div className="source-empty">
+                            <Activity size={20} />
+                            <strong>
+                                No event data available
+                            </strong>
+                            <span>
+                                Connect and populate PostgreSQL
+                                to display thermal events.
+                            </span>
+                        </div>
+                    ) : (
+                        hotspots.map((hotspot, index) => (
+                            <div
+                                className="activity-row"
+                                key={hotspotIdentity(hotspot)}
+                            >
+                                <div className="activity-number">
+                                    {String(index + 1).padStart(
+                                        2,
+                                        "0"
+                                    )}
                                 </div>
 
-                                <span className="activity-location">
-                                    <MapPin size={13} />
-                                    {hotspot.location}
-                                </span>
+                                <div className="activity-main">
+                                    <div className="activity-title">
+                                        <span className="thermal-pulse" />
+                                        {hotspotIdentity(hotspot)}
+                                    </div>
+
+                                    <span className="activity-location">
+                                        <MapPin size={13} />
+                                        {Number(
+                                            hotspot.latitude
+                                        ).toFixed(4)}
+                                        ,{" "}
+                                        {Number(
+                                            hotspot.longitude
+                                        ).toFixed(4)}
+                                    </span>
+                                </div>
+
+                                <div className="activity-property">
+                                    <span>ACTIVE DAYS</span>
+                                    {hotspot.active_days ?? "â€”"}
+                                </div>
+
+                                <div className="activity-property">
+                                    <span>OBSERVATIONS</span>
+                                    {hotspot.observation_count ??
+                                        "â€”"}
+                                </div>
+
+                                <div className="activity-status">
+                                    {hotspot.target_persistent_source ===
+                                    1
+                                        ? "PERSISTENT CANDIDATE"
+                                        : "THERMAL EVENT"}
+                                </div>
+
+                                <ArrowUpRight size={16} />
                             </div>
-
-                            <div className="activity-property">
-                                <span>LATITUDE</span>
-                                {hotspot.latitude.toFixed(4)}
-                            </div>
-
-                            <div className="activity-property">
-                                <span>LONGITUDE</span>
-                                {hotspot.longitude.toFixed(4)}
-                            </div>
-
-                            <div className="activity-status">
-                                DEVELOPMENT MOCK
-                            </div>
-
-                            <ArrowUpRight size={16} />
-                        </div>
-                    ))}
-
+                        ))
+                    )}
                 </div>
             </section>
 
-            {/* PRIORITY */}
-            <section className="dashboard-section">
-                <div className="priority-dashboard">
-
-                    <div className="priority-copy">
-                        <div className="card-icon warning">
-                            <ShieldAlert size={21} />
-                        </div>
-
-                        <span className="section-label">
-                            INVESTIGATION PRIORITY
-                        </span>
-
-                        <h2>
-                            Focus analyst attention where it matters.
-                        </h2>
-
-                        <p>
-                            Once the ML and historical pipeline is connected,
-                            candidate sources can be ranked using backend-provided
-                            evidence and priority scores.
-                        </p>
-
-                        <a href="/intelligence" className="section-link">
-                            View intelligence
-                            <ArrowUpRight size={15} />
-                        </a>
-                    </div>
-
-                    <div className="priority-visual">
-                        <div className="priority-circle">
-                            <span>—</span>
-                            <small>PRIORITY</small>
-                        </div>
-
-                        <div className="priority-lines">
-                            <div />
-                            <div />
-                            <div />
-                        </div>
-                    </div>
-
-                </div>
-            </section>
-
-            {/* SYSTEM FOOTER */}
             <section
                 id="system-status"
                 className="system-overview nav-section-target"
@@ -386,16 +453,26 @@ function Overview() {
                 <div className="system-item">
                     <Activity size={17} />
                     <div>
-                        <span>FRONTEND</span>
-                        <strong>OPERATIONAL</strong>
+                        <span>FASTAPI</span>
+                        <strong>
+                            {health === "online"
+                                ? "REACHABLE"
+                                : health === "offline"
+                                    ? "UNREACHABLE"
+                                    : "CHECKING"}
+                        </strong>
                     </div>
                 </div>
 
                 <div className="system-item">
                     <Radio size={17} />
                     <div>
-                        <span>FIRMS DATA</span>
-                        <strong>AWAITING BACKEND</strong>
+                        <span>EVENT DATA</span>
+                        <strong>
+                            {stats
+                                ? "AVAILABLE"
+                                : "UNAVAILABLE"}
+                        </strong>
                     </div>
                 </div>
 
@@ -403,19 +480,18 @@ function Overview() {
                     <BrainCircuit size={17} />
                     <div>
                         <span>ML ENGINE</span>
-                        <strong>AWAITING INTEGRATION</strong>
+                        <strong>CHECK PER EVENT</strong>
                     </div>
                 </div>
 
                 <div className="system-item">
                     <ShieldAlert size={17} />
                     <div>
-                        <span>ANALYST CONSOLE</span>
-                        <strong>READY</strong>
+                        <span>SCIENTIFIC FALLBACKS</span>
+                        <strong>DISABLED</strong>
                     </div>
                 </div>
             </section>
-
         </div>
     );
 }

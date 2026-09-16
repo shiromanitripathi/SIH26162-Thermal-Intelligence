@@ -1,53 +1,131 @@
-import { useState } from "react";
 import {
-    Search,
-    MapPin,
-    Clock3,
-    Flame,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+import {
     Activity,
     ArrowRight,
+    Clock3,
+    Flame,
+    MapPin,
+    Search,
 } from "lucide-react";
 
-const demoEvents = [
-    {
-        id: "EVENT-DEMO-001",
-        region: "Northern India",
-        latitude: 28.6139,
-        longitude: 77.209,
-    },
-    {
-        id: "EVENT-DEMO-002",
-        region: "Western India",
-        latitude: 19.076,
-        longitude: 72.8777,
-    },
-    {
-        id: "EVENT-DEMO-003",
-        region: "Eastern India",
-        latitude: 22.5726,
-        longitude: 88.3639,
-    },
-    {
-        id: "EVENT-DEMO-004",
-        region: "Southern India",
-        latitude: 13.0827,
-        longitude: 80.2707,
-    },
-];
+import {
+    getHotspot,
+    getHotspots,
+    getHotspotStats,
+} from "../services/api";
+
+function eventIdentity(event) {
+    return String(
+        event?.event_id ??
+        event?.grid_id ??
+        event?.id ??
+        ""
+    );
+}
+
+function formatInteger(value) {
+    return Number.isFinite(Number(value))
+        ? Number(value).toLocaleString()
+        : "â€”";
+}
 
 function Events() {
     const [search, setSearch] = useState("");
-    const [selectedEvent, setSelectedEvent] = useState(demoEvents[0]);
+    const [events, setEvents] = useState([]);
+    const [
+        selectedEvent,
+        setSelectedEvent,
+    ] = useState(null);
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    const filteredEvents = demoEvents.filter(
-        (event) =>
-            event.id.toLowerCase().includes(search.toLowerCase()) ||
-            event.region.toLowerCase().includes(search.toLowerCase())
-    );
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            setLoading(true);
+
+            try {
+                const [eventResult, statsResult] =
+                    await Promise.all([
+                        getHotspots({ limit: 500 }),
+                        getHotspotStats(),
+                    ]);
+
+                if (cancelled) {
+                    return;
+                }
+
+                setEvents(eventResult);
+                setStats(statsResult);
+                setSelectedEvent(
+                    eventResult[0] ?? null
+                );
+                setError("");
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err.message);
+                    setEvents([]);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const filteredEvents = useMemo(() => {
+        const query = search
+            .trim()
+            .toLowerCase();
+
+        if (!query) {
+            return events;
+        }
+
+        return events.filter((event) =>
+            [
+                eventIdentity(event),
+                event.grid_id,
+                event.event_id,
+                event.id,
+            ]
+                .filter(Boolean)
+                .some((value) =>
+                    String(value)
+                        .toLowerCase()
+                        .includes(query)
+                )
+        );
+    }, [events, search]);
+
+    async function selectEvent(event) {
+        setSelectedEvent(event);
+
+        try {
+            const detail = await getHotspot(
+                eventIdentity(event)
+            );
+            setSelectedEvent(detail);
+        } catch {
+            // Keep real list data if detail retrieval fails.
+        }
+    }
 
     return (
         <div className="events-page">
-
             <section className="events-header">
                 <div className="events-eyebrow">
                     EXPLORE / EVENTS
@@ -56,136 +134,183 @@ function Events() {
                 <h1>Event Explorer</h1>
 
                 <p>
-                    Search, filter and inspect detected thermal observations.
+                    Search and inspect thermal-event cells
+                    loaded from PostgreSQL/PostGIS.
                 </p>
 
-                <div className="events-backend-notice">
-                    EVENT DATA AWAITING BACKEND
-                </div>
+                {error && (
+                    <div className="events-backend-notice">
+                        EVENT DATA UNAVAILABLE: {error}
+                    </div>
+                )}
             </section>
 
             <section className="event-summary-grid">
-
                 <div className="event-summary-card">
                     <Activity size={20} />
-                    <span>THERMAL EVENTS</span>
-                    <strong>—</strong>
-                    <small>Not available yet</small>
+                    <span>
+                        THERMAL EVENT CELLS
+                    </span>
+                    <strong>
+                        {formatInteger(
+                            stats?.total_spatial_cells
+                        )}
+                    </strong>
+                    <small>Stored spatial cells</small>
                 </div>
 
                 <div className="event-summary-card">
                     <Clock3 size={20} />
-                    <span>PERSISTENT EVENTS</span>
-                    <strong>—</strong>
-                    <small>Not available yet</small>
+                    <span>
+                        PERSISTENT CANDIDATES
+                    </span>
+                    <strong>
+                        {formatInteger(
+                            stats?.persistent_candidate_cells
+                        )}
+                    </strong>
+                    <small>
+                        Heuristic candidate label
+                    </small>
                 </div>
 
                 <div className="event-summary-card">
                     <Flame size={20} />
-                    <span>RECURRENT SOURCES</span>
-                    <strong>—</strong>
-                    <small>Not available yet</small>
+                    <span>MAX ACTIVE DAYS</span>
+                    <strong>
+                        {formatInteger(
+                            stats?.max_active_days
+                        )}
+                    </strong>
+                    <small>
+                        Maximum observed active days
+                    </small>
                 </div>
 
                 <div className="event-summary-card">
                     <MapPin size={20} />
-                    <span>PRIORITY EVENTS</span>
-                    <strong>—</strong>
-                    <small>Not available yet</small>
+                    <span>OSM CONTEXT CELLS</span>
+                    <strong>
+                        {formatInteger(
+                            stats?.osm_context_cells
+                        )}
+                    </strong>
+                    <small>
+                        Context explicitly available
+                    </small>
                 </div>
-
             </section>
 
             <section
                 id="hotspot-search"
                 className="events-controls nav-section-target"
             >
-
                 <div className="event-search">
                     <Search size={18} />
 
                     <input
                         type="text"
-                        placeholder="Search event ID or region..."
+                        placeholder="Search event_id, grid_id or database ID..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(event) =>
+                            setSearch(event.target.value)
+                        }
                     />
                 </div>
-
-                <select>
-                    <option>All Event Types</option>
-                    <option>Thermal Event</option>
-                    <option>Persistent Source</option>
-                    <option>Recurring Source</option>
-                </select>
-
-                <select>
-                    <option>Latest First</option>
-                    <option>Oldest First</option>
-                </select>
-
             </section>
 
             <section
                 id="event-explorer"
                 className="events-workspace nav-section-target"
             >
-
                 <div className="event-list-panel">
-
                     <div className="event-panel-header">
                         <div>
                             <span className="panel-kicker">
-                                DETECTED EVENTS
+                                BACKEND EVENTS
                             </span>
-
                             <h2>Event Registry</h2>
                         </div>
 
                         <span className="event-count">
-                            {filteredEvents.length} development events
+                            {loading
+                                ? "loading"
+                                : `${filteredEvents.length} events`}
                         </span>
                     </div>
 
                     <div className="event-list">
-
-                        {filteredEvents.length === 0 ? (
+                        {filteredEvents.length ===
+                        0 ? (
                             <div className="event-empty">
-                                No matching events found.
+                                {loading
+                                    ? "Loading events..."
+                                    : "No matching events found."}
                             </div>
                         ) : (
-                            filteredEvents.map((event) => (
-                                <button
-                                    key={event.id}
-                                    className={`event-row ${selectedEvent?.id === event.id
-                                        ? "selected"
-                                        : ""
+                            filteredEvents.map(
+                                (event) => (
+                                    <button
+                                        key={eventIdentity(
+                                            event
+                                        )}
+                                        className={`event-row ${
+                                            eventIdentity(
+                                                selectedEvent
+                                            ) ===
+                                            eventIdentity(
+                                                event
+                                            )
+                                                ? "selected"
+                                                : ""
                                         }`}
-                                    onClick={() => setSelectedEvent(event)}
-                                >
+                                        onClick={() =>
+                                            selectEvent(
+                                                event
+                                            )
+                                        }
+                                    >
+                                        <div className="event-row-icon">
+                                            <Flame
+                                                size={
+                                                    18
+                                                }
+                                            />
+                                        </div>
 
-                                    <div className="event-row-icon">
-                                        <Flame size={18} />
-                                    </div>
+                                        <div className="event-row-content">
+                                            <strong>
+                                                {eventIdentity(
+                                                    event
+                                                )}
+                                            </strong>
+                                            <span>
+                                                {Number(
+                                                    event.latitude
+                                                ).toFixed(
+                                                    4
+                                                )}
+                                                ,{" "}
+                                                {Number(
+                                                    event.longitude
+                                                ).toFixed(
+                                                    4
+                                                )}
+                                            </span>
+                                        </div>
 
-                                    <div className="event-row-content">
-                                        <strong>{event.id}</strong>
-                                        <span>{event.region}</span>
-                                    </div>
-
-                                    <ArrowRight size={17} />
-
-                                </button>
-                            ))
+                                        <ArrowRight
+                                            size={17}
+                                        />
+                                    </button>
+                                )
+                            )
                         )}
-
                     </div>
                 </div>
 
                 <div className="event-inspector">
-
                     <div className="event-panel-header">
-
                         <div>
                             <span className="panel-kicker">
                                 EVENT INSPECTOR
@@ -193,122 +318,142 @@ function Events() {
 
                             <h2>
                                 {selectedEvent
-                                    ? selectedEvent.id
+                                    ? eventIdentity(
+                                        selectedEvent
+                                    )
                                     : "No Event Selected"}
                             </h2>
                         </div>
-
                     </div>
 
                     {selectedEvent && (
                         <>
-                            <div className="event-status-badge">
-                                DEVELOPMENT MOCK
-                            </div>
-
                             <div className="event-location-block">
-
                                 <MapPin size={19} />
 
                                 <div>
-                                    <span>REGION</span>
-                                    <strong>{selectedEvent.region}</strong>
+                                    <span>
+                                        COORDINATES
+                                    </span>
+                                    <strong>
+                                        {Number(
+                                            selectedEvent.latitude
+                                        ).toFixed(5)}
+                                        ,{" "}
+                                        {Number(
+                                            selectedEvent.longitude
+                                        ).toFixed(5)}
+                                    </strong>
                                 </div>
-
                             </div>
 
                             <div className="event-detail-grid">
-
                                 <div>
-                                    <span>LATITUDE</span>
-                                    <strong>{selectedEvent.latitude}</strong>
+                                    <span>
+                                        OBSERVATIONS
+                                    </span>
+                                    <strong>
+                                        {selectedEvent.observation_count ??
+                                            "â€”"}
+                                    </strong>
                                 </div>
 
                                 <div>
-                                    <span>LONGITUDE</span>
-                                    <strong>{selectedEvent.longitude}</strong>
+                                    <span>
+                                        ACTIVE DAYS
+                                    </span>
+                                    <strong>
+                                        {selectedEvent.active_days ??
+                                            "â€”"}
+                                    </strong>
                                 </div>
 
                                 <div>
-                                    <span>OBSERVATIONS</span>
-                                    <strong>—</strong>
+                                    <span>
+                                        PERSISTENCE DAYS
+                                    </span>
+                                    <strong>
+                                        {selectedEvent.persistence_days ??
+                                            "â€”"}
+                                    </strong>
                                 </div>
 
                                 <div>
-                                    <span>DURATION</span>
-                                    <strong>—</strong>
+                                    <span>
+                                        RECURRENCE RATIO
+                                    </span>
+                                    <strong>
+                                        {selectedEvent.recurrence_ratio ==
+                                        null
+                                            ? "â€”"
+                                            : Number(
+                                                selectedEvent.recurrence_ratio
+                                            ).toFixed(
+                                                3
+                                            )}
+                                    </strong>
                                 </div>
 
                                 <div>
-                                    <span>RECURRENCE</span>
-                                    <strong>—</strong>
+                                    <span>MEAN FRP</span>
+                                    <strong>
+                                        {selectedEvent.mean_frp ==
+                                        null
+                                            ? "â€”"
+                                            : Number(
+                                                selectedEvent.mean_frp
+                                            ).toFixed(
+                                                2
+                                            )}
+                                    </strong>
                                 </div>
 
                                 <div>
-                                    <span>THERMAL INTENSITY</span>
-                                    <strong>—</strong>
+                                    <span>
+                                        FIRMS CONFIDENCE
+                                    </span>
+                                    <strong>
+                                        {selectedEvent.confidence ==
+                                        null
+                                            ? "â€”"
+                                            : Number(
+                                                selectedEvent.confidence
+                                            ).toFixed(
+                                                2
+                                            )}
+                                    </strong>
                                 </div>
-
                             </div>
 
                             <div className="event-history-box">
-
                                 <div className="history-title">
                                     <Clock3 size={17} />
-                                    TEMPORAL HISTORY
+                                    OBSERVATION PERIOD
                                 </div>
 
                                 <p>
-                                    Historical observation data will appear here
-                                    when the backend event aggregation is connected.
+                                    {selectedEvent.first_seen &&
+                                    selectedEvent.last_seen
+                                        ? `${selectedEvent.first_seen} to ${selectedEvent.last_seen}`
+                                        : "Observation dates are not available for this event."}
                                 </p>
-
                             </div>
 
                             <a
-                                href={`/analysis?event=${selectedEvent.id}`}
+                                href={`/analysis?event=${encodeURIComponent(
+                                    eventIdentity(
+                                        selectedEvent
+                                    )
+                                )}`}
                                 className="event-analyze-button"
                             >
                                 ANALYZE EVENT
                                 <ArrowRight size={18} />
                             </a>
-
                         </>
                     )}
-
                 </div>
-
             </section>
-
-            <section className="event-concept">
-
-                <span className="panel-kicker">
-                    EVENT FORMATION
-                </span>
-
-                <h2>
-                    From observations to thermal events
-                </h2>
-
-                <p>
-                    Individual FIRMS observations can be grouped using
-                    spatial and temporal behavior. The resulting event can
-                    then be evaluated using persistence, recurrence,
-                    thermal history and geographic context.
-                </p>
-
-                <div className="concept-flow">
-                    <span>FIRMS OBSERVATION</span>
-                    <ArrowRight size={18} />
-                    <span>SPATIAL / TEMPORAL GROUPING</span>
-                    <ArrowRight size={18} />
-                    <span>EVENT</span>
-                    <ArrowRight size={18} />
-                    <span>INVESTIGATION</span>
-                </div>
-
-            </section>
-
         </div>
     );
 }

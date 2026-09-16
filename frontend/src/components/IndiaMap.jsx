@@ -1,17 +1,19 @@
 import {
-    MapContainer,
-    TileLayer,
     CircleMarker,
+    MapContainer,
     Popup,
-    useMap,
+    TileLayer,
 } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
 
-function MapController() {
-    const map = useMap();
-
-    return null;
+function hotspotIdentity(hotspot) {
+    return String(
+        hotspot?.event_id ??
+        hotspot?.grid_id ??
+        hotspot?.id ??
+        ""
+    );
 }
 
 function IndiaMap({
@@ -19,9 +21,10 @@ function IndiaMap({
     selectedHotspot,
     onSelectHotspot,
 }) {
+    const selectedIdentity = hotspotIdentity(selectedHotspot);
+
     return (
         <div className="india-map-wrapper">
-
             <MapContainer
                 center={[22.5, 79]}
                 zoom={5}
@@ -30,20 +33,14 @@ function IndiaMap({
                 scrollWheelZoom={true}
                 className="india-map"
             >
-
                 <TileLayer
-                    attribution='&copy; OpenStreetMap contributors'
+                    attribution="&copy; OpenStreetMap contributors"
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
-                <MapController />
-
                 {hotspots.map((hotspot) => {
-                    const latitude =
-                        Number(hotspot.latitude);
-
-                    const longitude =
-                        Number(hotspot.longitude);
+                    const latitude = Number(hotspot.latitude);
+                    const longitude = Number(hotspot.longitude);
 
                     if (
                         !Number.isFinite(latitude) ||
@@ -52,58 +49,65 @@ function IndiaMap({
                         return null;
                     }
 
+                    const identity = hotspotIdentity(hotspot);
                     const selected =
-                        selectedHotspot?.id === hotspot.id;
+                        identity !== "" &&
+                        identity === selectedIdentity;
 
                     return (
                         <CircleMarker
-                            key={hotspot.id}
-                            center={[
-                                latitude,
-                                longitude,
-                            ]}
+                            key={
+                                identity ||
+                                `${latitude}-${longitude}`
+                            }
+                            center={[latitude, longitude]}
                             radius={selected ? 11 : 7}
                             pathOptions={{
                                 color: selected
                                     ? "#ffffff"
                                     : "#ff7a2f",
-
                                 fillColor: "#ff6b21",
-
                                 fillOpacity:
                                     selected ? 0.95 : 0.7,
-
-                                weight:
-                                    selected ? 3 : 1.5,
+                                weight: selected ? 3 : 1.5,
                             }}
                             eventHandlers={{
                                 click: () =>
-                                    onSelectHotspot?.(
-                                        hotspot
-                                    ),
+                                    onSelectHotspot?.(hotspot),
                             }}
                         >
                             <Popup>
                                 <strong>
-                                    {hotspot.id ||
-                                        "Thermal Observation"}
+                                    {identity ||
+                                        "Thermal event"}
                                 </strong>
 
                                 <br />
 
-                                {hotspot.location ||
-                                    "Location not available"}
+                                {latitude.toFixed(4)},{" "}
+                                {longitude.toFixed(4)}
 
-                                <br />
+                                {hotspot.active_days != null && (
+                                    <>
+                                        <br />
+                                        Active days:{" "}
+                                        {hotspot.active_days}
+                                    </>
+                                )}
 
-                                {hotspot.isMock
-                                    ? "DEVELOPMENT MOCK"
-                                    : "FIRMS observation"}
+                                {hotspot.mean_frp != null && (
+                                    <>
+                                        <br />
+                                        Mean FRP:{" "}
+                                        {Number(
+                                            hotspot.mean_frp
+                                        ).toFixed(2)}
+                                    </>
+                                )}
                             </Popup>
                         </CircleMarker>
                     );
                 })}
-
             </MapContainer>
 
             <div className="map-overlay">
@@ -112,22 +116,21 @@ function IndiaMap({
                 </div>
 
                 <div className="map-overlay-subtitle">
-                    FIRMS observation layer
+                    Backend thermal-event layer
                 </div>
             </div>
 
             <div className="map-legend">
                 <div>
                     <span className="legend-dot" />
-                    Thermal observation
+                    Thermal event
                 </div>
 
                 <div>
                     <span className="legend-ring" />
-                    Selected source
+                    Selected event
                 </div>
             </div>
-
         </div>
     );
 }
