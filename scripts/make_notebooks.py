@@ -19,7 +19,7 @@ def md_cell(src):
 
 # 01 Data Understanding
 cells_01 = [
-    md_cell('# 01 Ã¢â‚¬â€ FIRMS Data Understanding and Verification\n\nThis notebook inspects NASA FIRMS VIIRS S-NPP thermal hotspot observations for SIH26162.'),
+    md_cell('# 01 — FIRMS Data Understanding and Verification\n\nThis notebook inspects NASA FIRMS VIIRS S-NPP thermal hotspot observations for SIH26162.'),
     code_cell('''import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -49,7 +49,7 @@ display(df[["brightness", "bright_t31", "frp"]].describe())''')
 
 # 02 Feature Engineering
 cells_02 = [
-    md_cell('# 02 Ã¢â‚¬â€ Spatial Aggregation, Feature Engineering, and OSM Context\n\nAggregates 1.74M observations into 644k spatial cells and merges OpenStreetMap context.'),
+    md_cell('# 02 — Spatial Aggregation, Feature Engineering, and OSM Context\n\nAggregates 1.74M observations into 644k spatial cells and merges OpenStreetMap context.'),
     code_cell('''import pandas as pd
 from pathlib import Path
 
@@ -108,7 +108,7 @@ display(merged_df[osm_cols].describe())''')
 
 # 03 Baseline Models
 cells_03 = [
-    md_cell('# 03 Ã¢â‚¬â€ Baseline Model Training and Grouped Validation\n\nTrains Logistic Regression, Random Forest, HistGradientBoosting, and Isolation Forest models.'),
+    md_cell('# 03 — Baseline Model Training and Grouped Validation\n\nTrains Logistic Regression, Random Forest, HistGradientBoosting, and Isolation Forest models.'),
     code_cell('''from src.models.train import train_and_evaluate_all_models
 
 metadata = train_and_evaluate_all_models()
@@ -118,7 +118,7 @@ print("Train / Val / Test Split:", metadata["num_train_samples"], metadata["num_
 
 # 04 Model Evaluation
 cells_04 = [
-    md_cell('# 04 Ã¢â‚¬â€ Model Evaluation and Predictor Demonstration\n\nEvaluates baseline models and demonstrates explainable predictor output on real thermal candidates.'),
+    md_cell('# 04 — Model Evaluation and Predictor Demonstration\n\nEvaluates baseline models and demonstrates explainable predictor output on real thermal candidates.'),
     code_cell('''from src.models.evaluate import print_evaluation_report
 from src.models.predictor import get_predictor
 import pandas as pd
