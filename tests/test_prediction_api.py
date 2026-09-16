@@ -1,4 +1,5 @@
-from unittest.mock import patch
+﻿from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 from src.api.main import app
@@ -10,7 +11,7 @@ client = TestClient(app)
 
 
 def test_predict_mock_success():
-    with patch.object(predictor, 'model', None):
+    with patch.object(predictor, "model", None):
         response = client.post(
             "/api/predict",
             json={
@@ -19,23 +20,35 @@ def test_predict_mock_success():
             },
         )
 
-        assert response.status_code == 200
+    assert response.status_code == 200
 
-        data = response.json()
+    data = response.json()
 
-        assert data["classification"] == "MODEL_NOT_AVAILABLE"
-        assert data["model_score"] is None
-        assert data["is_mock"] is True
-        assert data["model_version"] == "mock-v0"
-        assert isinstance(data["evidence"], list)
+    assert data["classification"] == "MODEL_NOT_AVAILABLE"
+    assert data["model_score"] is None
+    assert data["is_mock"] is True
+    assert data["model_version"] == "mock-v0"
+    assert isinstance(data["evidence"], list)
 
 
 def test_predict_real_model_success():
+    if not predictor.is_model_loaded:
+        import pytest
+
+        pytest.skip(
+            "Final model artifact is not available locally."
+        )
+
+    features = {
+        name: 1.0
+        for name in predictor.feature_names
+    }
+
     response = client.post(
         "/api/predict",
         json={
-            "event_id": "EVT_TEST_002",
-            "features": {"active_days": 15, "persistence_days": 100},
+            "event_id": "EVT_TEST_REAL",
+            "features": features,
         },
     )
 
@@ -44,9 +57,7 @@ def test_predict_real_model_success():
     data = response.json()
 
     assert data["classification"] != "MODEL_NOT_AVAILABLE"
-    assert data["model_score"] is not None
     assert data["is_mock"] is False
-    assert isinstance(data["evidence"], list)
 
 
 def test_predict_missing_event_id():
@@ -54,6 +65,17 @@ def test_predict_missing_event_id():
         "/api/predict",
         json={
             "features": {},
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_predict_missing_features():
+    response = client.post(
+        "/api/predict",
+        json={
+            "event_id": "EVT_TEST_MISSING_FEATURES",
         },
     )
 

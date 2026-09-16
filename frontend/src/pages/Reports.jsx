@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
     ArrowLeft,
@@ -11,63 +12,100 @@ import {
     ShieldAlert,
 } from "lucide-react";
 
-const demoEvents = {
-    "EVENT-DEMO-001": {
-        id: "EVENT-DEMO-001",
-        region: "Northern India",
-        latitude: 28.6139,
-        longitude: 77.209,
-    },
+import {
+    getHotspot,
+    getHotspotClassification,
+} from "../services/api";
 
-    "EVENT-DEMO-002": {
-        id: "EVENT-DEMO-002",
-        region: "Western India",
-        latitude: 19.076,
-        longitude: 72.8777,
-    },
-
-    "EVENT-DEMO-003": {
-        id: "EVENT-DEMO-003",
-        region: "Eastern India",
-        latitude: 22.5726,
-        longitude: 88.3639,
-    },
-
-    "EVENT-DEMO-004": {
-        id: "EVENT-DEMO-004",
-        region: "Southern India",
-        latitude: 13.0827,
-        longitude: 80.2707,
-    },
-};
+function eventIdentity(event) {
+    return String(
+        event?.event_id ??
+        event?.grid_id ??
+        event?.id ??
+        ""
+    );
+}
 
 function Reports() {
     const [searchParams] = useSearchParams();
 
-    const eventId =
+    const requestedId =
         searchParams.get("event") ||
         searchParams.get("hotspot") ||
-        "EVENT-DEMO-001";
+        "";
 
-    const event =
-        demoEvents[eventId] || {
-            id: eventId,
-            region: "Location not available",
-            latitude: null,
-            longitude: null,
+    const [event, setEvent] = useState(null);
+    const [prediction, setPrediction] =
+        useState(null);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        if (!requestedId) {
+            setEvent(null);
+            setPrediction(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        async function load() {
+            try {
+                const eventResult =
+                    await getHotspot(requestedId);
+
+                if (cancelled) {
+                    return;
+                }
+
+                setEvent(eventResult);
+                setError("");
+
+                try {
+                    const predictionResult =
+                        await getHotspotClassification(
+                            eventIdentity(
+                                eventResult
+                            )
+                        );
+
+                    if (!cancelled) {
+                        setPrediction(
+                            predictionResult
+                        );
+                    }
+                } catch {
+                    if (!cancelled) {
+                        setPrediction(null);
+                    }
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setEvent(null);
+                    setPrediction(null);
+                    setError(err.message);
+                }
+            }
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
         };
+    }, [requestedId]);
 
     function handlePrint() {
         window.print();
     }
 
+    const modelUnavailable =
+        prediction?.is_mock === true ||
+        prediction?.classification ===
+            "MODEL_NOT_AVAILABLE";
+
     return (
         <div className="reports-page">
-
-            {/* SCREEN HEADER */}
-
             <section className="reports-header no-print">
-
                 <div className="reports-eyebrow">
                     REPORTS / INVESTIGATION
                 </div>
@@ -75,16 +113,22 @@ function Reports() {
                 <h1>Investigation Report</h1>
 
                 <p>
-                    Structured analyst report for a selected thermal event.
+                    Structured report generated only from
+                    available backend evidence.
                 </p>
 
                 <div
                     id="export-print"
                     className="report-toolbar nav-section-target"
                 >
-
                     <a
-                        href={`/analysis?event=${event.id}`}
+                        href={
+                            event
+                                ? `/analysis?event=${encodeURIComponent(
+                                    eventIdentity(event)
+                                )}`
+                                : "/analysis"
+                        }
                         className="report-back-button"
                     >
                         <ArrowLeft size={17} />
@@ -98,352 +142,424 @@ function Reports() {
                         <Printer size={17} />
                         PRINT / EXPORT
                     </button>
-
                 </div>
-
             </section>
 
-            {/* DEVELOPMENT NOTICE */}
+            {error && (
+                <div className="report-development no-print">
+                    <Radio size={18} />
 
-            <div className="report-development no-print">
-
-                <Radio size={18} />
-
-                <div>
-                    <strong>DEVELOPMENT MODE</strong>
-
-                    <span>
-                        This report contains only available data. Missing
-                        observations, analytics and AI results are not
-                        fabricated.
-                    </span>
+                    <div>
+                        <strong>
+                            REPORT DATA UNAVAILABLE
+                        </strong>
+                        <span>{error}</span>
+                    </div>
                 </div>
+            )}
 
-            </div>
+            {!requestedId && (
+                <div className="report-development no-print">
+                    <Radio size={18} />
 
-            {/* REPORT DOCUMENT */}
+                    <div>
+                        <strong>
+                            NO EVENT SELECTED
+                        </strong>
+                        <span>
+                            Open a report from a selected
+                            event or analysis page.
+                        </span>
+                    </div>
+                </div>
+            )}
 
             <article
                 id="investigation-report"
                 className="investigation-report nav-section-target"
             >
-
-                {/* REPORT TOP */}
-
                 <header className="report-document-header">
-
                     <div className="report-brand">
-
                         <div className="report-brand-icon">
                             <Flame size={22} />
                         </div>
 
                         <div>
                             <strong>FIRMS</strong>
-                            <span>THERMAL INTELLIGENCE</span>
+                            <span>
+                                THERMAL INTELLIGENCE
+                            </span>
                         </div>
-
                     </div>
 
                     <div className="report-document-type">
-                        <span>INVESTIGATION REPORT</span>
-                        <strong>{event.id}</strong>
+                        <span>
+                            INVESTIGATION REPORT
+                        </span>
+                        <strong>
+                            {event
+                                ? eventIdentity(event)
+                                : "NO EVENT"}
+                        </strong>
                     </div>
-
                 </header>
 
-                {/* STATUS */}
-
                 <div className="report-status-row">
-
                     <div className="report-status">
-                        DEVELOPMENT MOCK
+                        BACKEND DATA ONLY
                     </div>
 
                     <div className="report-generated">
                         <CalendarDays size={15} />
-                        Generated from available system data
+                        Missing values are displayed as
+                        unavailable
                     </div>
-
                 </div>
 
-                {/* EXECUTIVE SUMMARY */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <FileText size={18} />
 
                         <div>
                             <span>01</span>
                             <h2>Executive Summary</h2>
                         </div>
-
                     </div>
 
                     <div className="report-summary">
-
                         <p>
-                            This report documents the available information
-                            associated with thermal event{" "}
-                            <strong>{event.id}</strong>.
+                            This report documents the
+                            backend-provided information
+                            associated with{" "}
+                            <strong>
+                                {event
+                                    ? eventIdentity(
+                                        event
+                                    )
+                                    : "the selected event"}
+                            </strong>
+                            .
                         </p>
 
                         <p>
-                            The current development dataset does not provide
-                            validated event analytics or an AI assessment.
-                            Therefore, no classification, confidence,
-                            persistence or investigation score is asserted.
+                            Model output is treated as a
+                            candidate classification, not
+                            verified ground truth. Missing
+                            model or OSM information is not
+                            converted into synthetic values.
                         </p>
-
                     </div>
-
                 </section>
 
-                {/* LOCATION */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <MapPin size={18} />
 
                         <div>
                             <span>02</span>
                             <h2>Event Location</h2>
                         </div>
-
                     </div>
 
                     <div className="report-info-grid">
-
                         <div className="report-info-item">
                             <span>EVENT ID</span>
-                            <strong>{event.id}</strong>
+                            <strong>
+                                {event
+                                    ? eventIdentity(
+                                        event
+                                    )
+                                    : "â€”"}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>REGION</span>
-                            <strong>{event.region}</strong>
+                            <span>GRID ID</span>
+                            <strong>
+                                {event?.grid_id ?? "â€”"}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
                             <span>LATITUDE</span>
                             <strong>
-                                {event.latitude ?? "Not available yet"}
+                                {event?.latitude ?? "â€”"}
                             </strong>
                         </div>
 
                         <div className="report-info-item">
                             <span>LONGITUDE</span>
                             <strong>
-                                {event.longitude ?? "Not available yet"}
+                                {event?.longitude ?? "â€”"}
                             </strong>
                         </div>
-
                     </div>
-
                 </section>
 
-                {/* THERMAL DATA */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <Flame size={18} />
 
                         <div>
                             <span>03</span>
-                            <h2>Thermal Observations</h2>
+                            <h2>
+                                Thermal Observations
+                            </h2>
                         </div>
-
                     </div>
 
                     <div className="report-info-grid">
-
                         <div className="report-info-item">
-                            <span>OBSERVATION PERIOD</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                OBSERVATION PERIOD
+                            </span>
+                            <strong>
+                                {event?.first_seen &&
+                                event?.last_seen
+                                    ? `${event.first_seen} to ${event.last_seen}`
+                                    : "â€”"}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>OBSERVATION COUNT</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                OBSERVATION COUNT
+                            </span>
+                            <strong>
+                                {event?.observation_count ??
+                                    "â€”"}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>THERMAL INTENSITY / FRP</span>
-                            <strong>Not available yet</strong>
+                            <span>MEAN FRP</span>
+                            <strong>
+                                {event?.mean_frp == null
+                                    ? "â€”"
+                                    : Number(
+                                        event.mean_frp
+                                    ).toFixed(2)}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>FIRMS CONFIDENCE</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                FIRMS CONFIDENCE
+                            </span>
+                            <strong>
+                                {event?.confidence == null
+                                    ? "â€”"
+                                    : Number(
+                                        event.confidence
+                                    ).toFixed(2)}
+                            </strong>
                         </div>
-
                     </div>
-
                 </section>
 
-                {/* TEMPORAL */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <Clock3 size={18} />
 
                         <div>
                             <span>04</span>
-                            <h2>Persistence & Recurrence</h2>
+                            <h2>
+                                Persistence & Recurrence
+                            </h2>
                         </div>
-
                     </div>
 
                     <div className="report-info-grid">
-
                         <div className="report-info-item">
-                            <span>PERSISTENCE</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                PERSISTENCE DAYS
+                            </span>
+                            <strong>
+                                {event?.persistence_days ??
+                                    "â€”"}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>DURATION</span>
-                            <strong>Not available yet</strong>
+                            <span>ACTIVE DAYS</span>
+                            <strong>
+                                {event?.active_days ?? "â€”"}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>RECURRENCE</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                RECURRENCE RATIO
+                            </span>
+                            <strong>
+                                {event?.recurrence_ratio ==
+                                null
+                                    ? "â€”"
+                                    : Number(
+                                        event.recurrence_ratio
+                                    ).toFixed(3)}
+                            </strong>
                         </div>
 
                         <div className="report-info-item">
-                            <span>TIME-OF-DAY PATTERN</span>
-                            <strong>Not available yet</strong>
+                            <span>NIGHT RATIO</span>
+                            <strong>
+                                {event?.night_ratio == null
+                                    ? "â€”"
+                                    : Number(
+                                        event.night_ratio
+                                    ).toFixed(3)}
+                            </strong>
                         </div>
-
                     </div>
-
                 </section>
 
-                {/* CONTEXT */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <MapPin size={18} />
 
                         <div>
                             <span>05</span>
-                            <h2>Geographic Context</h2>
+                            <h2>
+                                Geographic Context
+                            </h2>
                         </div>
-
                     </div>
 
                     <div className="report-context-box">
-
                         <div>
-                            <span>INDUSTRIAL CONTEXT</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                OSM CONTEXT STATUS
+                            </span>
+                            <strong>
+                                {event?.osm_context_available ===
+                                true
+                                    ? "Available"
+                                    : "Unavailable / not queried"}
+                            </strong>
                         </div>
 
                         <div>
-                            <span>OSM / GEOGRAPHIC CONTEXT</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                INDUSTRIAL FEATURES
+                            </span>
+                            <strong>
+                                {event?.osm_context_available ===
+                                true
+                                    ? event?.osm_industrial_count ??
+                                      "â€”"
+                                    : "â€”"}
+                            </strong>
                         </div>
 
                         <div>
-                            <span>LAND / SATELLITE CONTEXT</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                NEAREST CONTEXT DISTANCE
+                            </span>
+                            <strong>
+                                {event?.osm_context_available ===
+                                    true &&
+                                event?.osm_min_distance_m !=
+                                    null
+                                    ? `${Number(
+                                        event.osm_min_distance_m
+                                    ).toFixed(1)} m`
+                                    : "â€”"}
+                            </strong>
                         </div>
-
                     </div>
 
                     <p className="report-note">
-                        Geographic proximity is contextual evidence and does
-                        not by itself establish the cause or source of a
-                        thermal observation.
+                        Geographic proximity is contextual
+                        evidence and does not establish the
+                        cause or source of a thermal event.
                     </p>
-
                 </section>
 
-                {/* AI */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <ShieldAlert size={18} />
 
                         <div>
                             <span>06</span>
                             <h2>AI Assessment</h2>
                         </div>
-
                     </div>
 
                     <div className="ai-report-result">
-
                         <div>
-                            <span>CLASSIFICATION</span>
-                            <strong>Not available yet</strong>
+                            <span>
+                                MODEL CLASSIFICATION
+                            </span>
+                            <strong>
+                                {modelUnavailable
+                                    ? "Model unavailable"
+                                    : prediction?.classification ??
+                                      "â€”"}
+                            </strong>
                         </div>
 
                         <div>
-                            <span>CONFIDENCE / ASSESSMENT</span>
-                            <strong>Not available yet</strong>
+                            <span>MODEL SCORE</span>
+                            <strong>
+                                {prediction?.model_score ==
+                                null
+                                    ? "â€”"
+                                    : Number(
+                                        prediction.model_score
+                                    ).toFixed(4)}
+                            </strong>
                         </div>
 
                         <div>
-                            <span>INVESTIGATION PRIORITY</span>
-                            <strong>Not available yet</strong>
+                            <span>MODEL VERSION</span>
+                            <strong>
+                                {prediction?.model_version ??
+                                    "â€”"}
+                            </strong>
                         </div>
-
                     </div>
 
                     <div className="report-evidence">
-
-                        <span>SUPPORTING EVIDENCE</span>
+                        <span>
+                            SUPPORTING EVIDENCE
+                        </span>
 
                         <p>
-                            AI-generated supporting evidence will appear here
-                            after the prediction service provides a validated
-                            assessment.
+                            {prediction?.evidence?.length
+                                ? prediction.evidence.join(
+                                    " â€¢ "
+                                )
+                                : "No model evidence is available."}
                         </p>
-
                     </div>
-
                 </section>
 
-                {/* PROVENANCE */}
-
                 <section className="report-section">
-
                     <div className="report-section-title">
-
                         <Radio size={18} />
 
                         <div>
                             <span>07</span>
                             <h2>Data Provenance</h2>
                         </div>
-
                     </div>
 
                     <div className="provenance-box">
-
                         <div>
-                            <span>PRIMARY OBSERVATION SOURCE</span>
+                            <span>
+                                PRIMARY OBSERVATION SOURCE
+                            </span>
                             <strong>NASA FIRMS</strong>
                         </div>
 
                         <div>
-                            <span>GEOGRAPHIC CONTEXT</span>
+                            <span>
+                                GEOGRAPHIC CONTEXT
+                            </span>
                             <strong>
-                                OSM / validated geospatial data
+                                OSM context when explicitly
+                                available
                             </strong>
                         </div>
 
@@ -456,37 +572,32 @@ function Reports() {
 
                         <div>
                             <span>REPORT STATUS</span>
-                            <strong>Development report</strong>
+                            <strong>
+                                Analyst decision-support
+                                report
+                            </strong>
                         </div>
-
                     </div>
-
                 </section>
 
-                {/* DISCLAIMER */}
-
                 <footer className="report-footer">
-
                     <strong>
                         ANALYST DECISION SUPPORT
                     </strong>
 
                     <p>
-                        Thermal observations are indicators requiring
-                        contextual interpretation. This report does not by
-                        itself establish the source or cause of a thermal
-                        anomaly. Investigation conclusions should rely on
-                        validated data and appropriate domain verification.
+                        Thermal observations are indicators
+                        requiring contextual interpretation.
+                        Model outputs and heuristic labels are
+                        not independently verified source
+                        attribution.
                     </p>
 
                     <div>
-                        FIRMS THERMAL INTELLIGENCE • SIH26162 • NTRO
+                        FIRMS THERMAL INTELLIGENCE â€¢ SIH26162
                     </div>
-
                 </footer>
-
             </article>
-
         </div>
     );
 }

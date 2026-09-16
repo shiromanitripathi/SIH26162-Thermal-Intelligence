@@ -1,4 +1,8 @@
-import { useMemo, useState } from "react";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import {
     Activity,
     CalendarDays,
@@ -12,79 +16,147 @@ import {
 } from "lucide-react";
 
 import IndiaMap from "../components/IndiaMap";
+import {
+    getHotspot,
+    getHotspots,
+} from "../services/api";
 
-const demoHotspots = [
-    {
-        id: "DEMO-001",
-        latitude: 28.6139,
-        longitude: 77.209,
-        location: "Northern India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-002",
-        latitude: 19.076,
-        longitude: 72.8777,
-        location: "Western India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-003",
-        latitude: 22.5726,
-        longitude: 88.3639,
-        location: "Eastern India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-004",
-        latitude: 13.0827,
-        longitude: 80.2707,
-        location: "Southern India",
-        isMock: true,
-    },
-    {
-        id: "DEMO-005",
-        latitude: 30.901,
-        longitude: 75.8573,
-        location: "North-West India",
-        isMock: true,
-    },
-];
+function hotspotIdentity(hotspot) {
+    return String(
+        hotspot?.event_id ??
+        hotspot?.grid_id ??
+        hotspot?.id ??
+        ""
+    );
+}
+
+function classificationText(value) {
+    switch (Number(value)) {
+        case 0:
+            return "Vegetation/agricultural candidate";
+        case 1:
+            return "Industrial-fire candidate";
+        case 2:
+            return "Persistent thermal-source candidate";
+        case 3:
+            return "Other / ephemeral candidate";
+        default:
+            return "Not classified";
+    }
+}
+
+function formatNumber(value, digits = 2) {
+    return Number.isFinite(Number(value))
+        ? Number(value).toFixed(digits)
+        : "â€”";
+}
 
 function ThermalMapPage() {
-    const [selectedHotspot, setSelectedHotspot] = useState(null);
+    const [hotspots, setHotspots] = useState([]);
+    const [
+        selectedHotspot,
+        setSelectedHotspot,
+    ] = useState(null);
     const [search, setSearch] = useState("");
     const [showFilters, setShowFilters] = useState(true);
-    const [confidence, setConfidence] = useState("all");
-    const [classification, setClassification] = useState("all");
+    const [minActiveDays, setMinActiveDays] =
+        useState("1");
+    const [classification, setClassification] =
+        useState("all");
+    const [loading, setLoading] = useState(true);
+    const [detailLoading, setDetailLoading] =
+        useState(false);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadHotspots() {
+            setLoading(true);
+            setError("");
+
+            try {
+                const result = await getHotspots({
+                    min_active_days:
+                        Number(minActiveDays),
+                    limit: 1500,
+                });
+
+                if (!cancelled) {
+                    setHotspots(result);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setHotspots([]);
+                    setError(err.message);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        loadHotspots();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [minActiveDays]);
 
     const filteredHotspots = useMemo(() => {
-        return demoHotspots.filter((hotspot) => {
+        const query = search.trim().toLowerCase();
+
+        return hotspots.filter((hotspot) => {
             const matchesSearch =
-                !search ||
-                hotspot.id.toLowerCase().includes(search.toLowerCase()) ||
-                hotspot.location.toLowerCase().includes(search.toLowerCase());
+                !query ||
+                hotspotIdentity(hotspot)
+                    .toLowerCase()
+                    .includes(query) ||
+                String(hotspot.id ?? "")
+                    .toLowerCase()
+                    .includes(query) ||
+                String(hotspot.grid_id ?? "")
+                    .toLowerCase()
+                    .includes(query);
 
-            return matchesSearch;
+            const matchesClassification =
+                classification === "all" ||
+                String(hotspot.target_multiclass) ===
+                    classification;
+
+            return (
+                matchesSearch &&
+                matchesClassification
+            );
         });
-    }, [search]);
+    }, [hotspots, search, classification]);
 
-    function handleSelectHotspot(hotspot) {
+    async function handleSelectHotspot(hotspot) {
         setSelectedHotspot(hotspot);
+        setDetailLoading(true);
+
+        try {
+            const detail = await getHotspot(
+                hotspotIdentity(hotspot)
+            );
+            setSelectedHotspot(detail);
+        } catch {
+            // Keep real list data if detail retrieval fails.
+        } finally {
+            setDetailLoading(false);
+        }
     }
 
     function clearFilters() {
         setSearch("");
-        setConfidence("all");
+        setMinActiveDays("1");
         setClassification("all");
     }
 
     return (
         <div className="thermal-map-page">
-
-            {/* HEADER */}
             <section className="map-page-header">
-
                 <div>
                     <div className="eyebrow">
                         <span className="eyebrow-dot" />
@@ -94,129 +166,166 @@ function ThermalMapPage() {
                     <h1>Thermal Map</h1>
 
                     <p>
-                        Explore satellite-detected thermal observations across India,
-                        inspect individual sources and prepare events for deeper
-                        temporal and AI analysis.
+                        Explore backend-provided thermal-event
+                        cells across India and inspect their
+                        observed temporal and contextual
+                        attributes.
                     </p>
                 </div>
 
                 <div className="map-live-status">
                     <span className="status-dot" />
-                    MAP LAYER ONLINE
+                    {loading
+                        ? "LOADING DATA"
+                        : "BACKEND EVENT LAYER"}
                 </div>
-
             </section>
 
-            {/* DEVELOPMENT NOTICE */}
-            <div className="development-banner map-development-banner">
-                <div>
-                    <Target size={17} />
-                    <strong>DEVELOPMENT DATA</strong>
+            {error && (
+                <div className="development-banner map-development-banner">
+                    <div>
+                        <Target size={17} />
+                        <strong>
+                            EVENT DATA UNAVAILABLE
+                        </strong>
+                    </div>
+
+                    <span>{error}</span>
                 </div>
+            )}
 
-                <span>
-                    Current markers are demonstration data for interface development.
-                    Real FIRMS observations will be loaded through the backend API.
-                </span>
-            </div>
-
-            {/* TOOLBAR */}
             <section
                 id="hotspot-search"
                 className="map-toolbar nav-section-target"
             >
-
                 <div className="map-search">
                     <Search size={17} />
 
                     <input
                         type="text"
-                        placeholder="Search hotspot ID or region..."
+                        placeholder="Search event_id, grid_id or database ID..."
                         value={search}
-                        onChange={(event) => setSearch(event.target.value)}
+                        onChange={(event) =>
+                            setSearch(event.target.value)
+                        }
                     />
 
                     {search && (
-                        <button onClick={() => setSearch("")}>
+                        <button
+                            onClick={() => setSearch("")}
+                        >
                             <X size={15} />
                         </button>
                     )}
                 </div>
 
                 <button
-                    className={`filter-toggle ${showFilters ? "active" : ""}`}
-                    onClick={() => setShowFilters(!showFilters)}
+                    className={`filter-toggle ${
+                        showFilters ? "active" : ""
+                    }`}
+                    onClick={() =>
+                        setShowFilters(!showFilters)
+                    }
                 >
                     <SlidersHorizontal size={16} />
                     Filters
                     <ChevronDown
                         size={14}
-                        className={showFilters ? "rotate-chevron" : ""}
+                        className={
+                            showFilters
+                                ? "rotate-chevron"
+                                : ""
+                        }
                     />
                 </button>
 
                 <div className="map-result-count">
                     <Flame size={15} />
-                    <strong>{filteredHotspots.length}</strong>
-                    <span>visible sources</span>
+                    <strong>
+                        {filteredHotspots.length}
+                    </strong>
+                    <span>visible event cells</span>
                 </div>
-
             </section>
 
-            {/* FILTERS */}
             {showFilters && (
                 <section className="map-filter-panel">
-
                     <div className="filter-field">
                         <label>
                             <CalendarDays size={13} />
-                            DATE RANGE
+                            MINIMUM ACTIVE DAYS
                         </label>
 
-                        <select defaultValue="all">
-                            <option value="all">All available dates</option>
-                            <option value="today">Today</option>
-                            <option value="week">Last 7 days</option>
-                            <option value="month">Last 30 days</option>
+                        <select
+                            value={minActiveDays}
+                            onChange={(event) =>
+                                setMinActiveDays(
+                                    event.target.value
+                                )
+                            }
+                        >
+                            <option value="1">
+                                1+ active day
+                            </option>
+                            <option value="3">
+                                3+ active days
+                            </option>
+                            <option value="5">
+                                5+ active days
+                            </option>
+                            <option value="10">
+                                10+ active days
+                            </option>
                         </select>
                     </div>
 
                     <div className="filter-field">
                         <label>
                             <Activity size={13} />
-                            CONFIDENCE
+                            CLASSIFICATION
                         </label>
 
                         <select
-                            value={confidence}
-                            onChange={(event) => setConfidence(event.target.value)}
+                            value={classification}
+                            onChange={(event) =>
+                                setClassification(
+                                    event.target.value
+                                )
+                            }
                         >
-                            <option value="all">All confidence levels</option>
-                            <option value="high">High</option>
-                            <option value="nominal">Nominal</option>
-                            <option value="low">Low</option>
+                            <option value="all">
+                                All heuristic classes
+                            </option>
+                            <option value="0">
+                                Vegetation/agricultural
+                                candidate
+                            </option>
+                            <option value="1">
+                                Industrial-fire candidate
+                            </option>
+                            <option value="2">
+                                Persistent thermal-source
+                                candidate
+                            </option>
+                            <option value="3">
+                                Other / ephemeral candidate
+                            </option>
                         </select>
                     </div>
 
                     <div className="filter-field">
                         <label>
                             <Target size={13} />
-                            CLASSIFICATION
+                            LABEL STATUS
                         </label>
 
                         <select
-                            value={classification}
-                            onChange={(event) => setClassification(event.target.value)}
+                            value="weak"
+                            disabled
+                            readOnly
                         >
-                            <option value="all">All classifications</option>
-                            <option value="industrial">
-                                Likely industrial
-                            </option>
-                            <option value="persistent">
-                                Persistent source
-                            </option>
-                            <option value="other">
-                                Other / uncertain
+                            <option value="weak">
+                                Heuristic / weak labels
                             </option>
                         </select>
                     </div>
@@ -227,250 +336,308 @@ function ThermalMapPage() {
                     >
                         Clear filters
                     </button>
-
                 </section>
             )}
 
-            {/* MAIN MAP AREA */}
             <section
                 id="thermal-map"
                 className="map-workspace nav-section-target"
             >
-
                 <div className="map-main-panel">
-
                     <IndiaMap
                         hotspots={filteredHotspots}
-                        selectedHotspot={selectedHotspot}
-                        onSelectHotspot={handleSelectHotspot}
+                        selectedHotspot={
+                            selectedHotspot
+                        }
+                        onSelectHotspot={
+                            handleSelectHotspot
+                        }
                     />
 
                     <div className="map-coordinates">
-                        <span>LAT 06°–37° N</span>
-                        <span>LON 68°–98° E</span>
+                        <span>LAT 06Â°â€“37Â° N</span>
+                        <span>LON 68Â°â€“98Â° E</span>
                     </div>
-
                 </div>
 
-                {/* SIDE PANEL */}
                 <aside className="map-side-panel">
-
                     {!selectedHotspot ? (
                         <div className="map-empty-selection">
-
                             <div className="selection-icon">
                                 <MapPin size={25} />
                             </div>
 
                             <span className="section-label">
-                                HOTSPOT INSPECTOR
+                                EVENT INSPECTOR
                             </span>
 
-                            <h2>Select a thermal source</h2>
+                            <h2>
+                                Select a thermal event
+                            </h2>
 
                             <p>
-                                Click any thermal observation on the map or select one
-                                from the source list below to inspect its available
-                                information.
+                                Click a backend-provided event
+                                cell to inspect observed values.
+                                Missing values remain missing.
                             </p>
-
-                            <div className="selection-instruction">
-                                <span>01</span>
-                                Select a marker
-                            </div>
-
-                            <div className="selection-instruction">
-                                <span>02</span>
-                                Inspect source details
-                            </div>
-
-                            <div className="selection-instruction">
-                                <span>03</span>
-                                Continue to AI analysis
-                            </div>
-
                         </div>
                     ) : (
                         <div className="selected-source">
-
                             <div className="selected-source-header">
-
                                 <div>
                                     <span className="section-label">
-                                        SELECTED SOURCE
+                                        SELECTED EVENT
                                     </span>
 
-                                    <h2>{selectedHotspot.id}</h2>
+                                    <h2>
+                                        {hotspotIdentity(
+                                            selectedHotspot
+                                        )}
+                                    </h2>
                                 </div>
 
                                 <button
                                     className="close-selection"
-                                    onClick={() => setSelectedHotspot(null)}
+                                    onClick={() =>
+                                        setSelectedHotspot(
+                                            null
+                                        )
+                                    }
                                 >
                                     <X size={16} />
                                 </button>
-
                             </div>
 
-                            <div className="mock-tag">
-                                DEVELOPMENT MOCK
-                            </div>
+                            {detailLoading && (
+                                <div className="mock-tag">
+                                    LOADING DETAIL
+                                </div>
+                            )}
 
                             <div className="source-location">
                                 <MapPin size={16} />
 
                                 <div>
-                                    <span>REGION</span>
-                                    <strong>{selectedHotspot.location}</strong>
+                                    <span>COORDINATES</span>
+                                    <strong>
+                                        {formatNumber(
+                                            selectedHotspot.latitude,
+                                            5
+                                        )}
+                                        ,{" "}
+                                        {formatNumber(
+                                            selectedHotspot.longitude,
+                                            5
+                                        )}
+                                    </strong>
                                 </div>
                             </div>
 
                             <div className="coordinate-grid">
-
                                 <div>
-                                    <span>LATITUDE</span>
+                                    <span>ACTIVE DAYS</span>
                                     <strong>
-                                        {selectedHotspot.latitude.toFixed(5)}
+                                        {selectedHotspot.active_days ??
+                                            "â€”"}
                                     </strong>
                                 </div>
 
                                 <div>
-                                    <span>LONGITUDE</span>
+                                    <span>OBSERVATIONS</span>
                                     <strong>
-                                        {selectedHotspot.longitude.toFixed(5)}
+                                        {selectedHotspot.observation_count ??
+                                            "â€”"}
                                     </strong>
                                 </div>
-
                             </div>
 
                             <div className="source-information">
-
                                 <div className="source-info-row">
-                                    <span>Thermal intensity</span>
-                                    <strong>Not available yet</strong>
+                                    <span>Mean FRP</span>
+                                    <strong>
+                                        {selectedHotspot.mean_frp ==
+                                        null
+                                            ? "â€”"
+                                            : formatNumber(
+                                                selectedHotspot.mean_frp
+                                            )}
+                                    </strong>
                                 </div>
 
                                 <div className="source-info-row">
-                                    <span>Detection time</span>
-                                    <strong>Not available yet</strong>
+                                    <span>
+                                        FIRMS confidence
+                                    </span>
+                                    <strong>
+                                        {selectedHotspot.confidence ==
+                                        null
+                                            ? "â€”"
+                                            : formatNumber(
+                                                selectedHotspot.confidence
+                                            )}
+                                    </strong>
                                 </div>
 
                                 <div className="source-info-row">
-                                    <span>FIRMS confidence</span>
-                                    <strong>Not available yet</strong>
+                                    <span>
+                                        Persistence days
+                                    </span>
+                                    <strong>
+                                        {selectedHotspot.persistence_days ??
+                                            "â€”"}
+                                    </strong>
                                 </div>
 
                                 <div className="source-info-row">
-                                    <span>Persistence</span>
-                                    <strong>Not available yet</strong>
+                                    <span>
+                                        Heuristic class
+                                    </span>
+                                    <strong>
+                                        {classificationText(
+                                            selectedHotspot.target_multiclass
+                                        )}
+                                    </strong>
                                 </div>
 
                                 <div className="source-info-row">
-                                    <span>Classification</span>
-                                    <strong>Not available yet</strong>
+                                    <span>OSM context</span>
+                                    <strong>
+                                        {selectedHotspot.osm_context_available ===
+                                        true
+                                            ? "Available"
+                                            : "Unavailable / not queried"}
+                                    </strong>
                                 </div>
-
                             </div>
 
                             <div className="selection-actions">
-
                                 <a
-                                    href={`/analysis?hotspot=${selectedHotspot.id}`}
+                                    href={`/analysis?hotspot=${encodeURIComponent(
+                                        hotspotIdentity(
+                                            selectedHotspot
+                                        )
+                                    )}`}
                                     className="primary-action full-width"
                                 >
                                     <Activity size={16} />
-                                    Analyze Source
+                                    Analyze Event
                                 </a>
-
                             </div>
-
                         </div>
                     )}
-
                 </aside>
-
             </section>
 
-            {/* SOURCE TABLE */}
             <section
                 id="persistent-sources"
                 className="source-list-section nav-section-target"
             >
-
                 <div className="section-heading">
-
                     <div>
-                        <span className="section-index">03</span>
+                        <span className="section-index">
+                            03
+                        </span>
 
                         <div>
                             <span className="section-label">
-                                OBSERVATION INDEX
+                                EVENT INDEX
                             </span>
-
-                            <h2>Thermal sources</h2>
+                            <h2>
+                                Thermal-event cells
+                            </h2>
                         </div>
                     </div>
 
                     <span className="source-count">
                         {filteredHotspots.length} RESULTS
                     </span>
-
                 </div>
 
                 <div className="source-table">
-
                     <div className="source-table-header">
                         <span>ID</span>
-                        <span>LOCATION</span>
-                        <span>LATITUDE</span>
-                        <span>LONGITUDE</span>
-                        <span>STATUS</span>
+                        <span>CLASS</span>
+                        <span>ACTIVE DAYS</span>
+                        <span>OBSERVATIONS</span>
+                        <span>OSM</span>
                     </div>
 
-                    {filteredHotspots.length === 0 ? (
+                    {loading ? (
+                        <div className="source-empty">
+                            <Activity size={20} />
+                            <strong>
+                                Loading events
+                            </strong>
+                        </div>
+                    ) : filteredHotspots.length === 0 ? (
                         <div className="source-empty">
                             <Search size={20} />
-                            <strong>No matching sources</strong>
+                            <strong>
+                                No matching event cells
+                            </strong>
                             <span>
-                                Try changing your search or clearing the filters.
+                                Change the filters or verify
+                                backend data.
                             </span>
                         </div>
                     ) : (
-                        filteredHotspots.map((hotspot) => (
-                            <button
-                                className={`source-table-row ${selectedHotspot?.id === hotspot.id
-                                    ? "selected"
-                                    : ""
+                        filteredHotspots.map(
+                            (hotspot) => (
+                                <button
+                                    className={`source-table-row ${
+                                        hotspotIdentity(
+                                            selectedHotspot
+                                        ) ===
+                                        hotspotIdentity(
+                                            hotspot
+                                        )
+                                            ? "selected"
+                                            : ""
                                     }`}
-                                key={hotspot.id}
-                                onClick={() => handleSelectHotspot(hotspot)}
-                            >
-                                <span className="source-id">
-                                    <span className="thermal-pulse" />
-                                    {hotspot.id}
-                                </span>
+                                    key={hotspotIdentity(
+                                        hotspot
+                                    )}
+                                    onClick={() =>
+                                        handleSelectHotspot(
+                                            hotspot
+                                        )
+                                    }
+                                >
+                                    <span className="source-id">
+                                        <span className="thermal-pulse" />
+                                        {hotspotIdentity(
+                                            hotspot
+                                        )}
+                                    </span>
 
-                                <span>{hotspot.location}</span>
+                                    <span>
+                                        {classificationText(
+                                            hotspot.target_multiclass
+                                        )}
+                                    </span>
 
-                                <span>
-                                    {hotspot.latitude.toFixed(4)}
-                                </span>
+                                    <span>
+                                        {hotspot.active_days ??
+                                            "â€”"}
+                                    </span>
 
-                                <span>
-                                    {hotspot.longitude.toFixed(4)}
-                                </span>
+                                    <span>
+                                        {hotspot.observation_count ??
+                                            "â€”"}
+                                    </span>
 
-                                <span className="mock-status">
-                                    DEVELOPMENT MOCK
-                                </span>
-                            </button>
-                        ))
+                                    <span>
+                                        {hotspot.osm_context_available ===
+                                        true
+                                            ? "AVAILABLE"
+                                            : "UNAVAILABLE"}
+                                    </span>
+                                </button>
+                            )
+                        )
                     )}
-
                 </div>
-
             </section>
-
         </div>
     );
 }
