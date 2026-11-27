@@ -1,4 +1,6 @@
-﻿from fastapi import APIRouter, HTTPException
+﻿"""Direct ML prediction endpoint (/api/predict)."""
+
+from fastapi import APIRouter, HTTPException
 
 from src.api.schemas.prediction import (
     PredictionRequest,
@@ -15,6 +17,7 @@ router = APIRouter(
 
 @router.post("/predict", response_model=PredictionResponse)
 def predict_event(payload: PredictionRequest) -> PredictionResponse:
+    """Validate input features and run the loaded XGBoost model."""
     try:
         result = predict(
             {

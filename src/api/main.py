@@ -1,3 +1,5 @@
+"""FastAPI entry point for the SIH26162 Thermal Intelligence backend."""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,7 +12,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
-
+# Allow the local Vite React frontend to call this API during development.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -24,10 +26,12 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health_check():
+    """Simple liveness endpoint used by the frontend status indicator."""
     return {
         "status": "ok"
     }
 
 
+# Register hotspot query routes (/api/hotspots/*) and ML prediction route (/api/predict).
 app.include_router(hotspots_router)
 app.include_router(prediction_router)
