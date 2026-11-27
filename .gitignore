@@ -25,11 +25,13 @@ data/processed/*
 data/external/*
 !data/external/.gitkeep
 
-# Model artifacts (exclude trained models, binaries, and weights except .gitkeep)
+# Model artifacts (exclude trained models, binaries, and weights except .gitkeep and final runtime artifact)
 models/*
 !models/.gitkeep
+!models/final_model_metadata.json
 *.pkl
 *.joblib
+!models/final_multiclass_model.joblib
 *.h5
 *.onnx
 *.pt

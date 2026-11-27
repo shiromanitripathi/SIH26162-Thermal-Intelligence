@@ -1,0 +1,29 @@
+{
+  "model_version": "xgboost-leakage-reduced-firms-v1",
+  "target": "target_multiclass",
+  "feature_names": [
+    "observation_count",
+    "day_observations",
+    "night_observations",
+    "max_frp",
+    "std_frp",
+    "mean_brightness",
+    "max_brightness",
+    "mean_bright_t31",
+    "max_bright_t31",
+    "mean_confidence_score"
+  ],
+  "class_mapping": {
+    "0": "Vegetation/agricultural fire candidate (weak label)",
+    "1": "Industrial fire candidate (weak label)",
+    "2": "Persistent thermal source candidate (weak label)",
+    "3": "Other/ephemeral hotspot (weak label)"
+  },
+  "train_plus_validation_rows": 518711,
+  "untouched_test_rows": 125839,
+  "test_macro_f1": 0.8200442777321726,
+  "test_balanced_accuracy": 0.9283010156372131,
+  "label_status": "heuristic_weak_labels",
+  "osm_role": "Contextual evidence only; OSM is not a required model input for this artifact.",
+  "metric_warning": "Metrics measure agreement with the heuristic labeling scheme and are not independently validated real-world industrial-fire accuracy."
+}
