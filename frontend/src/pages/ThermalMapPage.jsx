@@ -31,6 +31,10 @@ function hotspotIdentity(hotspot) {
 }
 
 function classificationText(value) {
+    if (value === null || value === undefined || value === "") {
+        return "Not classified";
+    }
+
     switch (Number(value)) {
         case 0:
             return "Vegetation/agricultural candidate";
