@@ -19,11 +19,10 @@
     "2": "Persistent thermal source candidate (weak label)",
     "3": "Other/ephemeral hotspot (weak label)"
   },
-  "train_plus_validation_rows": 518711,
-  "untouched_test_rows": 125839,
-  "test_macro_f1": 0.8200442777321726,
-  "test_balanced_accuracy": 0.9283010156372131,
+  "train_rows": 518711,
+  "test_rows": 125839,
+  "test_macro_f1": 0.8203862711948415,
+  "test_balanced_accuracy": 0.9268710609671895,
   "label_status": "heuristic_weak_labels",
-  "osm_role": "Contextual evidence only; OSM is not a required model input for this artifact.",
-  "metric_warning": "Metrics measure agreement with the heuristic labeling scheme and are not independently validated real-world industrial-fire accuracy."
+  "osm_role": "Contextual evidence only; OSM is not a model input."
 }

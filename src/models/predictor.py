@@ -55,6 +55,7 @@ class ThermalSourcePredictor:
         return self.model is not None
 
     def _load_artifacts(self) -> None:
+        """Load the trained .joblib model bundle and optional metadata JSON."""
         if not self.model_path.exists():
             return
 
@@ -118,6 +119,7 @@ class ThermalSourcePredictor:
         return value
 
     def _mock_result(self, grid_id: str | None = None) -> dict[str, Any]:
+        # 3. Build human-readable evidence list (FIRMS stats + OSM context if available)
         evidence = [
             "No trained final model artifact is loaded. "
             "No classification or model score has been fabricated."
@@ -191,6 +193,7 @@ class ThermalSourcePredictor:
         if not self.is_model_loaded:
             return self._mock_result(grid_id)
 
+        # 1. Verify all required model features are present and numeric
         missing = [
             name
             for name in self.feature_names
@@ -218,6 +221,7 @@ class ThermalSourcePredictor:
                 "Model features must contain only finite numeric values."
             )
 
+        # 2. Run XGBoost class prediction and extract predicted-class probability
         raw_prediction = self.model.predict(X_input)[0]
         pred_class = self._normalize_class_key(raw_prediction)
 
@@ -247,6 +251,7 @@ class ThermalSourcePredictor:
             f"Class {pred_class}",
         )
 
+        # 3. Build human-readable evidence list (FIRMS stats + OSM context if available)
         evidence = [
             f"Model classification: {label}."
         ]

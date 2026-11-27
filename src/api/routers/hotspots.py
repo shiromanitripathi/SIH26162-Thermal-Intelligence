@@ -1,4 +1,6 @@
-﻿from fastapi import APIRouter, HTTPException, Query
+﻿"""REST endpoints for querying thermal hotspots and running ML classification."""
+
+from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.hotspot import (
     ClassificationRequest,
@@ -26,6 +28,7 @@ def list_hotspots(
     persistent_only: bool = Query(default=False),
     limit: int = Query(default=1500, ge=1, le=10000),
 ):
+    """Fetch thermal event grid cells from PostgreSQL with optional filters."""
     return get_hotspots(
         min_active_days=min_active_days,
         persistent_only=persistent_only,
@@ -35,6 +38,7 @@ def list_hotspots(
 
 @router.get("/stats")
 def hotspot_summary_stats():
+    """Return aggregate counts (total cells, persistent/ephemeral, OSM coverage)."""
     return get_hotspot_stats()
 
 
@@ -44,6 +48,7 @@ def nearby_hotspots(
     longitude: float = Query(ge=-180, le=180),
     radius_meters: float = Query(default=2000, gt=0, le=100000),
 ):
+    """Find hotspots within radius_meters of (latitude, longitude) using PostGIS."""
     return get_nearby_hotspots(
         latitude,
         longitude,
@@ -53,6 +58,7 @@ def nearby_hotspots(
 
 @router.post("/classify", response_model=ClassificationResponse)
 def classify_thermal_source(request: ClassificationRequest):
+    """Classify a hotspot from explicit feature values sent in the request body."""
     try:
         return classify_hotspot_cell(
             request.model_dump(exclude_none=True)
@@ -69,6 +75,7 @@ def classify_thermal_source(request: ClassificationRequest):
     response_model=ClassificationResponse,
 )
 def classify_by_hotspot_id(hotspot_id: str):
+    """Look up a hotspot in PostgreSQL by ID/grid_id and classify it with the ML model."""
     hotspot = get_hotspot(hotspot_id)
 
     if hotspot is None:
@@ -88,6 +95,7 @@ def classify_by_hotspot_id(hotspot_id: str):
 
 @router.get("/{hotspot_id}", response_model=Hotspot)
 def hotspot_detail(hotspot_id: str):
+    """Return full details for a single hotspot by numeric ID, event_id, or grid_id."""
     hotspot = get_hotspot(hotspot_id)
 
     if hotspot is None:
