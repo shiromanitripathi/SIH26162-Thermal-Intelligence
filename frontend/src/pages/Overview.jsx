@@ -56,7 +56,7 @@ function Overview() {
 
             const dataPromise = Promise.all([
                 getHotspotStats(),
-                getHotspots({ limit: 5 }),
+                getHotspots({ limit: 500 }),
             ])
                 .then(([statsResult, hotspotResult]) => {
                     if (cancelled) {
@@ -391,7 +391,7 @@ function Overview() {
                             </span>
                         </div>
                     ) : (
-                        hotspots.map((hotspot, index) => (
+                        hotspots.slice(0, 5).map((hotspot, index) => (
                             <div
                                 className="activity-row"
                                 key={hotspotIdentity(hotspot)}
