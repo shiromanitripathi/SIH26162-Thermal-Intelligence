@@ -16,6 +16,22 @@ function hotspotIdentity(hotspot) {
     );
 }
 
+const CLASS_STYLE = {
+    0: { label: "Vegetation / agricultural", color: "#22c55e" },
+    1: { label: "Industrial-fire candidate", color: "#ef4444" },
+    2: { label: "Persistent thermal source", color: "#f59e0b" },
+    3: { label: "Other / ephemeral", color: "#38bdf8" },
+};
+
+function getHotspotStyle(hotspot) {
+    const raw = hotspot?.target_multiclass;
+    if (raw !== null && raw !== undefined && raw !== "") {
+        const entry = CLASS_STYLE[Number(raw)];
+        if (entry) return entry;
+    }
+    return { label: "Unclassified", color: "#94a3b8" };
+}
+
 function IndiaMap({
     hotspots = [],
     selectedHotspot,
@@ -53,6 +69,7 @@ function IndiaMap({
                     const selected =
                         identity !== "" &&
                         identity === selectedIdentity;
+                    const classStyle = getHotspotStyle(hotspot);
 
                     return (
                         <CircleMarker
@@ -65,10 +82,10 @@ function IndiaMap({
                             pathOptions={{
                                 color: selected
                                     ? "#ffffff"
-                                    : "#ff7a2f",
-                                fillColor: "#ff6b21",
+                                    : classStyle.color,
+                                fillColor: classStyle.color,
                                 fillOpacity:
-                                    selected ? 0.95 : 0.7,
+                                    selected ? 0.95 : 0.75,
                                 weight: selected ? 3 : 1.5,
                             }}
                             eventHandlers={{
@@ -81,6 +98,9 @@ function IndiaMap({
                                     {identity ||
                                         "Thermal event"}
                                 </strong>
+
+                                <br />
+                                {classStyle.label}
 
                                 <br />
 
@@ -121,10 +141,15 @@ function IndiaMap({
             </div>
 
             <div className="map-legend">
-                <div>
-                    <span className="legend-dot" />
-                    Thermal event
-                </div>
+                {Object.entries(CLASS_STYLE).map(([key, item]) => (
+                    <div key={key}>
+                        <span
+                            className="legend-dot"
+                            style={{ backgroundColor: item.color }}
+                        />
+                        {item.label}
+                    </div>
+                ))}
 
                 <div>
                     <span className="legend-ring" />
